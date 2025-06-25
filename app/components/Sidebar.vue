@@ -11,8 +11,8 @@
         v-for="item in menu"
         :key="item.name"
         :to="item.to"
-        class="rounded-lg px-3 py-2 text-sm hover:bg-primary-600 transition-colors"
-        active-class="bg-primary-700"
+        class="rounded-lg px-3 py-2 text-sm hover:bg-primary-30 transition-colors"
+        active-class="bg-primary"
       >
         {{ item.name }}
       </NuxtLink>
