@@ -120,7 +120,6 @@ const confirmPayment = () => {
   const paymentDetails = {
     productId: productData.value.id,
     qty: quantity.value,
-    total: calculateTotal.value,
   };
   console.log('Detail Pembayaran Dikonfirmasi:', paymentDetails);
   alert(`Pembayaran sejumlah Rp.${paymentDetails.total.toLocaleString('id-ID')} dikonfirmasi untuk ${paymentDetails.qty} item!\n(Simulasi Frontend)`);
