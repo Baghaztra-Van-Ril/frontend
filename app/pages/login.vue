@@ -44,31 +44,54 @@ const email = ref('');
 const password = ref('');
 
 // Fungsi untuk menangani klik tombol "Login"
-const handleLogin = () => {
-  // Hanya menampilkan di konsol dan alert, tanpa mengirim ke backend
-  console.log('--- Form Login Data ---');
-  console.log('Email:', email.value);
-  console.log('Password:', password.value);
-  alert(`Anda mencoba login dengan:\nEmail: ${email.value}\nPassword: ${password.value}\n\n(Ini hanya simulasi frontend!)`);
-  // Di sini nanti tempat untuk memanggil API login ke backend
+const backendURL = useRuntimeConfig().public.BACKEND_URL;
+const token = useCookie('token')
+const role = useCookie('role')
+
+const handleLogin = async () => {
+    try{
+  const response = await fetch(`${backendURL}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email.value, password: password.value }),
+  });
+
+    const result = await response.json();
+
+    if (!response.ok) throw new Error(result.message || 'Login gagal!');
+
+    // Simpan ke cookie
+    token.value = result.token
+    role.value = result.role || 'admin'
+
+    alert('Login berhasil sebagai admin!');
+    router.push('/admin/dashboard');
+  } catch (error) {
+    alert(`Login gagal: ${error.message}`);
+  }
 };
+
 
 // Fungsi untuk menangani klik tombol "Login with Google"
 const handleGoogleLogin = () => {
-  // Hanya menampilkan di konsol dan alert
-  console.log('Tombol "Login with Google" diklik');
-  alert('Anda mencoba login dengan Google!\n\n(Ini hanya simulasi frontend!)');
-  // Di sini nanti tempat untuk memulai proses Google OAuth
+  window.location.href = `${backendURL}/auth/google`;
 };
 
-// Fungsi untuk menangani klik link "I don't have account"
-const goToRegister = () => {
-  // Hanya menampilkan di konsol dan alert
-  console.log('Link "I don\'t have account" diklik');
-  alert('Anda akan diarahkan ke halaman registrasi!\n\n(Ini hanya simulasi frontend!)');
-  // Di sini nanti tempat untuk navigasi menggunakan Nuxt Router
-  // Contoh: useRouter().push('/register'); // Jika Anda sudah punya halaman register
-};
+
+    // const result = await response.json();
+
+    // if (!response.ok) throw new Error(result.message || 'Login Google gagal!');
+
+    // token.value = result.token
+    // role.value = result.role || 'user'
+
+    // alert('Login berhasil dengan Google!');
+    // router.push('/home');
+//   } catch (error) {
+//     alert(`Login Google gagal: ${error.message}`);
+//   }
+// };
+
 </script>
 
 <style scoped>
