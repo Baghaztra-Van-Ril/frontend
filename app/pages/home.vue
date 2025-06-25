@@ -13,13 +13,18 @@
         <div class="mt-5">
             <h1 class="text-2xl font-bold">Produk Terbaru Kami</h1>
         </div>
+        <div class="flex items-center space-x-4 w-full">
+            <div class="ml-auto">
+                <UButton color="primary" to="/product">Lihat Semua Produk</UButton>
+            </div>
+    </div>
         <div class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 py-12">
             <template v-for="product in products" :key="product.id">
                 <ProductCard :id="product.id" :image="product.image" :productName="product.name" :price="product.price" />
             </template>
         </div>
+        
 
-        <!-- TODO: tambahkan tombol untuk lihat semua produk -->
     </div>
 </template>
 

@@ -2,7 +2,8 @@ export default defineAppConfig({
   // https://ui.nuxt.com/getting-started/theme#design-system
   ui: {
     colors: {
-      primary: 'blue',
+      primary: 'orange',
+      default:'red',
       neutral: 'slate',
     },
     button: {
