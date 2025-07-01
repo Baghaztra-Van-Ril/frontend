@@ -39,14 +39,14 @@
             <td class="px-4 py-2">
               <div class="flex gap-2">
                 <NuxtLink :to="`/admin/user/${user.id}`" class="bg-primary text-white px-3 py-1 rounded text-sm hover:bg-orange-900">
-  Edit
-</NuxtLink>
+                  Edit
+                </NuxtLink>
                 <button
-                @click="hapus(user.id)"
-                  class="border border-red-500 text-red-500 px-3 py-1 rounded text-sm hover:bg-red-100"
+                @click="handleDelete(user.id)"
+                class="border border-red-500 text-red-500 px-3 py-1 rounded text-sm hover:bg-red-100"
                 >
-                  Hapus
-                </button>
+                Hapus
+              </button>
               </div>
             </td>
           </tr>
@@ -81,6 +81,7 @@
 </template>
 
 <script setup>
+import Swal from 'sweetalert2';
 import { useRouter } from 'vue-router';
 
 
@@ -114,12 +115,33 @@ const user = [
     status: 'Inactive',
   },
   {
-    name: 'Firman',
-    email: 'firman@gmail.com',
+    name: 'Ichiro',
+    email: 'ichiro@gmail.com',
     role: 'BNN(Bagian Nice Nice)',
     status: 'Inactive',
   },
 ]
+
+const handleDelete = (userId) => {
+  Swal.fire({
+    title: 'Yakin ingin menghapus user ini?',
+    text: 'Data yang dihapus tidak bisa dikembalikan!',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Ya, hapus!',
+    cancelButtonText: 'Batal',
+  }).then((result) => {
+    if (result.isConfirmed) {
+      const index = user.findIndex(p => p.id === userId)
+      if (index !== -1) {
+        user.splice(index, 1)
+        Swal.fire('Terhapus!', 'User telah dihapus.', 'success')
+      }
+    }
+  })
+}
 
 const itemsPerPage = 10
 const currentPage = ref(1)
