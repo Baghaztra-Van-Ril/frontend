@@ -109,7 +109,8 @@ onMounted(async () => {
 })
 
 definePageMeta({
-  layout: 'admin'
+  layout: 'admin',
+  // middleware: 'is-login'
 })
 </script>
 

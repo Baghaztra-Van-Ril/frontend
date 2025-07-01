@@ -65,7 +65,22 @@ const handleLogin = async () => {
     );
 
     console.log('Login berhasil:', response.data);
-    router.push("/admin");
+    
+    // Simpan token ke cookie
+    if (response.data.token) {
+      const tokenCookie = useCookie('token', {
+        default: () => null,
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7 // 7 hari
+      });
+      tokenCookie.value = response.data.token;
+      console.log('Token saved to cookie:', response.data.token);
+    }
+
+    // Redirect ke admin page
+    await router.push("/admin");
 
   } catch (error) {
     console.error('Login gagal:', error.response?.data || error.message);
