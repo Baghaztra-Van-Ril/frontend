@@ -69,7 +69,7 @@ const bestSellingData = ref({
   labels: [],
   datasets: [{
     label: 'Stok Produk',
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#FFA500',
     data: []
   }]
 })
@@ -78,7 +78,7 @@ const mostVisitedData = ref({
   labels: [],
   datasets: [{
     label: 'Jumlah Kunjungan',
-    backgroundColor: '#10b981',
+    backgroundColor: '#f26021 ',
     data: []
   }]
 })
