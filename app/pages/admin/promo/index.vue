@@ -7,12 +7,12 @@
         <span class="text-sm text-gray-600 dark:text-gray-300">
           Menampilkan {{ startItem }} - {{ endItem }} dari {{ promos.length }} promo
         </span>
-        <button
-          @click="tambahPromo"
-          class="bg-primary text-white px-4 py-2 rounded hover:bg-orange-900 transition"
+        <NuxtLink
+          to="/admin/promo/create"
+          class="inline-block bg-primary text-white px-4 py-2 rounded hover:bg-orange-900 transition"
         >
           + Tambah Promo
-        </button>
+        </NuxtLink>
       </div>
 
       <table class="min-w-full border border-gray-200 dark:text-gray-200 rounded-lg shadow">
@@ -33,7 +33,7 @@
             :key="promo.id"
             class="border-t hover:bg-gray-50"
           >
-            <td class="px-4 py-2">{{ promo.id }}</td>
+            <td class="px-4 py-2 text-gray-500 dark:text-gray-200 font-semibold">{{ promo.id }}</td>
             <td class="px-4 py-2">
               <img
                 :src="promo.imageUrl"
@@ -41,8 +41,8 @@
                 class="w-16 h-16 rounded-md object-cover border"
               />
             </td>
-            <td class="px-4 py-2">{{ promo.productName }}</td>
-            <td class="px-4 py-2 text-gray-500 line-through">
+            <td class="px-4 py-2 text-gray-500 dark:text-gray-200 font-semibold">{{ promo.productName }}</td>
+            <td class="px-4 py-2 text-gray-500 line-through dark:text-gray-200 font-semibold">
               Rp.{{ promo.price.toLocaleString() }}
             </td>
             <td class="px-4 py-2 text-red-600 font-semibold">
@@ -53,10 +53,16 @@
             </td>
             <td class="px-4 py-2">
               <div class="flex gap-2">
-                <button class="bg-primary text-white px-3 py-1 rounded text-sm hover:bg-orange-900">
+                <NuxtLink
+                  :to="`/admin/promo/${promo.id}`"
+                  class="bg-primary text-white px-3 py-1 rounded text-sm hover:bg-orange-900"
+                >
                   Edit
-                </button>
-                <button class="border border-red-500 text-red-500 px-3 py-1 rounded text-sm hover:bg-red-100">
+                </NuxtLink>
+                <button
+                  @click="handleDelete(promo.id)"
+                  class="border border-red-500 text-red-500 px-3 py-1 rounded text-sm hover:bg-red-100"
+                >
                   Hapus
                 </button>
               </div>
@@ -94,6 +100,7 @@
 </template>
 
 <script setup>
+import Swal from 'sweetalert2'
 definePageMeta({
   layout: 'admin'
 })
@@ -124,6 +131,27 @@ const promos = [
     discount: 0.4
   },
 ]
+
+const handleDelete = (promoId) => {
+  Swal.fire({
+    title: 'Yakin ingin menghapus promo ini?',
+    text: 'Data yang dihapus tidak bisa dikembalikan!',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Ya, hapus!',
+    cancelButtonText: 'Batal',
+  }).then((result) => {
+    if (result.isConfirmed) {
+      const index = promos.findIndex(p => p.id === promoId)
+      if (index !== -1) {
+        promos.splice(index, 1)
+        Swal.fire('Terhapus!', 'Promo telah dihapus.', 'success')
+      }
+    }
+  })
+}
 
 const itemsPerPage = 10
 const currentPage = ref(1)
