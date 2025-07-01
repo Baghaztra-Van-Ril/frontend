@@ -29,6 +29,7 @@
 import { computed } from 'vue'
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+const config = useRuntimeConfig()
 import { Bar } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -84,96 +85,28 @@ const mostVisitedData = ref({
 })
 
 // Ambil data dari API
-onMounted(() => {
-  const dummyProducts = [
-    {
-      id: 1,
-      name: 'Sepatu Super',
-      description: 'Deskripsi A',
-      price: 100000,
-      imageUrl: 'https://picsum.photos/200/300?random=1',
-      size: 42,
-      stock: 120,
-      visitCount: 300,
-      _count: { favorites: 10 }
-    },
-    {
-      id: 2,
-      name: 'Sepatu Keren',
-      description: 'Deskripsi B',
-      price: 150000,
-      imageUrl: 'https://picsum.photos/200/300?random=2',
-      size: 41,
-      stock: 80,
-      visitCount: 450,
-      _count: { favorites: 7 }
-    },
-    {
-      id: 3,
-      name: 'Sepatu Lari',
-      description: 'Deskripsi C',
-      price: 180000,
-      imageUrl: 'https://picsum.photos/200/300?random=3',
-      size: 40,
-      stock: 150,
-      visitCount: 200,
-      _count: { favorites: 5 }
-    },
-    {
-      id: 4,
-      name: 'Sepatu Hitam',
-      description: 'Deskripsi D',
-      price: 130000,
-      imageUrl: 'https://picsum.photos/200/300?random=4',
-      size: 43,
-      stock: 60,
-      visitCount: 100,
-      _count: { favorites: 3 }
-    },
-    {
-      id: 5,
-      name: 'Sepatu Putih',
-      description: 'Deskripsi E',
-      price: 175000,
-      imageUrl: 'https://picsum.photos/200/300?random=5',
-      size: 39,
-      stock: 90,
-      visitCount: 380,
-      _count: { favorites: 9 }
-    }
-  ]
 
-  // Simulasikan hasil dari API
-  const products = dummyProducts
 
-  const sortedByStock = [...products].sort((a, b) => b.stock - a.stock).slice(0, 5)
-  bestSellingData.value.labels = sortedByStock.map(p => p.name)
-  bestSellingData.value.datasets[0].data = sortedByStock.map(p => p.stock)
+onMounted(async () => {
+  try {
+    // Use the correct backend URL from runtime config
+    const res = await axios.get(`${config.public.BACKEND_URL_2}/products`)
+    const products = res.data.data
 
-  const sortedByVisit = [...products].sort((a, b) => b.visitCount - a.visitCount).slice(0, 5)
-  mostVisitedData.value.labels = sortedByVisit.map(p => p.name)
-  mostVisitedData.value.datasets[0].data = sortedByVisit.map(p => p.visitCount)
+    // Ambil data terlaris (berdasarkan stok tertinggi)
+    const sortedByStock = [...products].sort((a, b) => b.stock - a.stock).slice(0, 5)
+    bestSellingData.value.labels = sortedByStock.map(p => p.name)
+    bestSellingData.value.datasets[0].data = sortedByStock.map(p => p.stock)
+
+    // Ambil data paling banyak dikunjungi
+    const sortedByVisit = [...products].sort((a, b) => b.visitCount - a.visitCount).slice(0, 5)
+    mostVisitedData.value.labels = sortedByVisit.map(p => p.name)
+    mostVisitedData.value.datasets[0].data = sortedByVisit.map(p => p.visitCount)
+
+  } catch (err) {
+    console.error('Gagal mengambil data produk:', err)
+  }
 })
-
-// onMounted(async () => {
-//   try {
-//     const res = await axios.get('https://your-api-url.com/api/products')
-//     const products = res.data.data
-
-//     // Ambil data terlaris (berdasarkan stok tertinggi)
-//     const sortedByStock = [...products].sort((a, b) => b.stock - a.stock).slice(0, 5)
-//     bestSellingData.value.labels = sortedByStock.map(p => p.name)
-//     bestSellingData.value.datasets[0].data = sortedByStock.map(p => p.stock)
-
-//     // Ambil data paling banyak dikunjungi
-//     const sortedByVisit = [...products].sort((a, b) => b.visitCount - a.visitCount).slice(0, 5)
-//     mostVisitedData.value.labels = sortedByVisit.map(p => p.name)
-//     mostVisitedData.value.datasets[0].data = sortedByVisit.map(p => p.visitCount)
-
-//   } catch (err) {
-//     console.error('Gagal mengambil data produk:', err)
-//   }
-// })
 
 definePageMeta({
   layout: 'admin'

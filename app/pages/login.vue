@@ -37,62 +37,52 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'; // Menggunakan Composition API dengan setup script
+import { ref } from 'vue';
+import { useRouter, useRuntimeConfig } from '#imports'; // Import Nuxt Composables
+import Swal from 'sweetalert2';
+import axios from 'axios';
 
-// Deklarasi state reaktif untuk input form
+// State untuk input email dan password
 const email = ref('');
 const password = ref('');
 
-// Fungsi untuk menangani klik tombol "Login"
-const backendURL = useRuntimeConfig().public.BACKEND_URL;
-const token = useCookie('token')
-const role = useCookie('role')
+const router = useRouter();
+const config = useRuntimeConfig();
+const backendURL = config.public.BACKEND_URL_1;
 
+// Fungsi untuk login email/password
 const handleLogin = async () => {
-    try{
-  const response = await fetch(`${backendURL}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: email.value, password: password.value }),
-  });
+  try {
+    const response = await axios.post(
+      `${backendURL}/auth/login`,
+      {
+        email: email.value,
+        password: password.value
+      },
+      {
+        withCredentials: true // agar cookie seperti token bisa terkirim
+      }
+    );
 
-    const result = await response.json();
+    console.log('Login berhasil:', response.data);
+    router.push("/admin");
 
-    if (!response.ok) throw new Error(result.message || 'Login gagal!');
-
-    // Simpan ke cookie
-    token.value = result.token
-    role.value = result.role || 'admin'
-
-    alert('Login berhasil sebagai admin!');
-    router.push('/admin/dashboard');
   } catch (error) {
-    alert(`Login gagal: ${error.message}`);
+    console.error('Login gagal:', error.response?.data || error.message);
+    Swal.fire({
+      icon: 'error',
+      title: 'Login Gagal',
+      text: error.response?.data?.message || 'Terjadi kesalahan saat login.'
+    });
   }
 };
 
-
-// Fungsi untuk menangani klik tombol "Login with Google"
+// Fungsi login Google
 const handleGoogleLogin = () => {
   window.location.href = `${backendURL}/auth/google`;
 };
-
-
-    // const result = await response.json();
-
-    // if (!response.ok) throw new Error(result.message || 'Login Google gagal!');
-
-    // token.value = result.token
-    // role.value = result.role || 'user'
-
-    // alert('Login berhasil dengan Google!');
-    // router.push('/home');
-//   } catch (error) {
-//     alert(`Login Google gagal: ${error.message}`);
-//   }
-// };
-
 </script>
+
 
 <style scoped>
 /* Styling CSS untuk komponen ini */

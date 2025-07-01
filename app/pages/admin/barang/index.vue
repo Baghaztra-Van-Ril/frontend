@@ -105,48 +105,39 @@
 <script setup>
 import Swal from 'sweetalert2'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
+
 definePageMeta({
   layout: 'admin'
 })
 
-const products = [
-  {
-    id: 1,
-    name: 'Sepatu Keren',
-    description: 'Sepatu running nyaman dan stylish',
-    imageUrl: 'https://picsum.photos/200/200?1',
-    stock: 20,
-    size: 42,
-    price: 350000,
-    favorite: 10,
-    visitCount: 132,
-  },
-  {
-    id: 2,
-    name: 'Sneakers Putih',
-    description: 'Cocok untuk sehari-hari',
-    imageUrl: 'https://picsum.photos/200/200?2',
-    stock: 15,
-    size: 41,
-    price: 275000,
-    favorite: 12,
-    visitCount: 98,
-  },
-  {
-    id: 3,
-    name: 'Sepatu Kulit',
-    description: 'Elegan untuk acara formal',
-    imageUrl: 'https://picsum.photos/200/200?3',
-    stock: 10,
-    size: 43,
-    price: 500000,
-    favorite: 41,
-    visitCount: 54,
-  },
-]
+// Access runtime config
+const config = useRuntimeConfig()
 
-const handleDelete = (productId) => {
-  Swal.fire({
+// Make products reactive
+const products = ref([])
+const loading = ref(true)
+const error = ref(null)
+
+// Fetch products from API
+const fetchProducts = async () => {
+  try {
+    loading.value = true
+    const response = await axios.get(`${config.public.BACKEND_URL_2}/products`)
+    products.value = response.data.data || response.data
+  } catch (err) {
+    console.error('Error fetching products:', err)
+    error.value = 'Gagal mengambil data produk'
+    
+    // Fallback to hardcoded data if API fails
+  } finally {
+    loading.value = false
+  }
+}
+
+// Delete product function with API call
+const handleDelete = async (productId) => {
+  const result = await Swal.fire({
     title: 'Yakin ingin menghapus produk ini?',
     text: 'Data yang dihapus tidak bisa dikembalikan!',
     icon: 'warning',
@@ -155,30 +146,63 @@ const handleDelete = (productId) => {
     cancelButtonColor: '#3085d6',
     confirmButtonText: 'Ya, hapus!',
     cancelButtonText: 'Batal',
-  }).then((result) => {
-    if (result.isConfirmed) {
-      const index = products.findIndex(p => p.id === productId)
-      if (index !== -1) {
-        products.splice(index, 1)
-        Swal.fire('Terhapus!', 'Produk telah dihapus.', 'success')
-      }
-    }
   })
+
+  if (result.isConfirmed) {
+    try {
+      // Call API to delete product
+      await axios.delete(`${config.public.BACKEND_URL_2}/products/${productId}`,{
+        withCredentials:true
+      })
+      const me = axios.get(`${config.public.BACKEND_URL_1}/auth/me`, {
+         withCredentials:true
+      })
+
+      console.log("me",me)
+      
+      // Remove from local array
+      const index = products.value.findIndex(p => p.id === productId)
+      if (index !== -1) {
+        products.value.splice(index, 1)
+      }
+      
+      Swal.fire('Terhapus!', 'Produk telah dihapus.', 'success')
+    } catch (err) {
+      console.error('Error deleting product:', err)
+      Swal.fire('Error!', 'Gagal menghapus produk.', 'error')
+    }
+  }
 }
 
 const itemsPerPage = 10
 const currentPage = ref(1)
 
-const totalPages = computed(() => Math.ceil(products.length / itemsPerPage))
+const totalPages = computed(() => Math.ceil(products.value.length / itemsPerPage))
 
 const paginatedProducts = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage
-  return products.slice(start, start + itemsPerPage)
+  return products.value.slice(start, start + itemsPerPage)
 })
 
 const startItem = computed(() => (currentPage.value - 1) * itemsPerPage + 1)
 const endItem = computed(() => {
   const end = currentPage.value * itemsPerPage
-  return end > products.length ? products.length : end
+  return end > products.value.length ? products.value.length : end
+})
+
+// Fetch data on component mount
+onMounted(() => {
+  fetchProducts()
+})
+
+// Expose refresh function for manual refresh
+const refreshProducts = () => {
+  fetchProducts()
+}
+
+// Export functions that might be needed in template
+defineExpose({
+  refreshProducts,
+  fetchProducts
 })
 </script>
