@@ -50,8 +50,8 @@
             </td>
             <td class="px-4 py-2">
               <button
-                @click="hapus(item.orderId)"
-                class="border border-red-500 text-red-500 px-3 py-1 rounded text-sm hover:bg-red-100"
+              @click="handleDelete(item.id)"
+              class="border border-red-500 text-red-500 px-3 py-1 rounded text-sm hover:bg-red-100"
               >
                 Hapus
               </button>
@@ -89,6 +89,8 @@
 </template>
 
 <script setup>
+import Swal from 'sweetalert2'
+
 definePageMeta({
   layout: 'admin'
 })
@@ -109,12 +111,26 @@ const penjualan = reactive([
   },
 ])
 
-const hapus = (orderId) => {
-  const index = penjualan.findIndex(p => p.orderId === orderId)
-  if (index !== -1) {
-    penjualan.splice(index, 1)
-    alert(`Penjualan dengan order ID ${orderId} telah dihapus.`)
-  }
+
+const handleDelete = (penjualanId) => {
+  Swal.fire({
+    title: 'Yakin ingin menghapus penjualan ini?',
+    text: 'Data yang dihapus tidak bisa dikembalikan!',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Ya, hapus!',
+    cancelButtonText: 'Batal',
+  }).then((result) => {
+    if (result.isConfirmed) {
+      const index = penjualan.findIndex(p => p.id === penjualanId)
+      if (index !== -1) {
+        penjualan.splice(index, 1)
+        Swal.fire('Terhapus!', 'Penjualan telah dihapus.', 'success')
+      }
+    }
+  })
 }
 
 const updateShipmentStatus = (index) => {

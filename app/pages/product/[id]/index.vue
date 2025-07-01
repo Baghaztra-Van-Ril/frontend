@@ -1,33 +1,35 @@
 <template>
-  <div class="min-h-screen bg-gray-200 dark:bg-gray-900 flex justify-center items-center p-6">
-    <div class="bg-white dark:bg-gray-800 shadow-xl rounded-xl p-6 md:p-10 flex flex-col md:flex-row gap-10 max-w-5xl w-full">
-      <!-- Gambar & Favorite -->
-      <div class="flex flex-col items-center w-full md:w-64">
-        <div class="w-60 h-60 border-4 border-blue-500 rounded-xl overflow-hidden flex justify-center items-center mb-4">
-          <img :src="productData.imageUrl" :alt="productData.name" class="w-full h-full object-cover" />
-        </div>
-        <button @click="handleFavorite" class="flex items-center justify-center px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition">
-          <HeartIcon class="w-6 h-6 mr-2" />
-          72k Favorite
-        </button>
-      </div>
+  <div class=" bg-gray-200 dark:bg-gray-900 flex justify-center p-6">
+    <div class="bg-white dark:bg-gray-800 shadow-xl rounded-xl p-6 flex flex-col items-center gap-6 w-full h-full">
+  <!-- Gambar -->
+  <div class="w-120 h-120 border-4 border-blue-500 rounded-xl overflow-hidden flex justify-center items-center">
+    <img :src="productData.imageUrl" :alt="productData.name" class="w-full h-full object-cover" />
+  </div>
 
-      <!-- Informasi Produk -->
-      <div class="flex flex-col w-full gap-3">
-        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">{{ productData.name }}</h2>
-        <p class="text-xl font-semibold text-gray-700 dark:text-gray-200">Rp.{{ productData.price.toLocaleString('id-ID') }},-</p>
-        <p class="text-gray-600 dark:text-gray-300">Stok: {{ productData.stock }}</p>
-        <p class="text-gray-600 dark:text-gray-300">Ukuran: {{ productData.size }}</p>
-        <p class="text-gray-700 dark:text-gray-400 mt-2">{{ productData.description }}</p>
+  <!-- Tombol Favorite -->
+  <button @click="handleFavorite" class="flex items-center justify-center px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition">
+    <HeartIcon class="w-6 h-6 mr-2" />
+    72k Favorite
+  </button>
 
-        <div class="mt-6 flex gap-4">
-          <button @click="handleBuy" class="flex items-center justify-center px-6 py-3 rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition">
-            <ShoppingCartIcon class="w-6 h-6 mr-2" />
-            Beli
-          </button>
-        </div>
-      </div>
-    </div>
+  <!-- Informasi Produk -->
+  <div class="flex flex-col items-center text-center gap-2">
+    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">{{ productData.name }}</h2>
+    <p class="text-xl font-semibold text-gray-700 dark:text-gray-200">Rp.{{ productData.price.toLocaleString('id-ID') }},-</p>
+    <p class="text-gray-600 dark:text-gray-300">Stok: {{ productData.stock }}</p>
+    <p class="text-gray-600 dark:text-gray-300">Ukuran: {{ productData.size }}</p>
+    <p class="text-gray-700 dark:text-gray-400 mt-2">{{ productData.description }}</p>
+  </div>
+
+  <!-- Tombol Beli -->
+  <div class="mt-4">
+    <button @click="handleBuy" class="flex items-center justify-center px-6 py-3 rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition">
+      <ShoppingCartIcon class="w-6 h-6 mr-2" />
+      Beli
+    </button>
+  </div>
+</div>
+
   </div>
 </template>
 
