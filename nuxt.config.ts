@@ -3,13 +3,13 @@ export default defineNuxtConfig({
 
    runtimeConfig: {
     public: {
-      BACKEND_URL: process.env.NUXT_BACKEND_URL || 'http://localhost:3000/api',
+      BACKEND_URL_1: process.env.NUXT_BACKEND_URL_1 || 'http://localhost:3010/api',
+      BACKEND_URL_2: process.env.NUXT_BACKEND_URL_2 || 'http://localhost:3020/api',
     }
   },
 
   devServer: {
     port: 3001,
-    host: '0.0.0.0', // Opsional: biar bisa diakses dari jaringan lokal juga
   },
 
   devtools: { enabled: true },
