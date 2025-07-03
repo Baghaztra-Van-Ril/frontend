@@ -21,7 +21,7 @@
 
       <div>
         <label class="block font-medium mb-1">Ukuran</label>
-        <input v-model="form.size" type="text" required class="w-full border border-gray-300 rounded px-3 py-2" />
+        <input v-model="form.size" type="number" required class="w-full border border-gray-300 rounded px-3 py-2" />
       </div>
 
       <div>
@@ -85,8 +85,11 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 
 const router = useRouter()
+const config = useRuntimeConfig()
+const backendURL = config.public.BACKEND_URL_2
 
 const form = ref({
   name: '',
@@ -129,7 +132,7 @@ const clearImage = () => {
   imagePreview.value = null
   invalidFile.value = false
   if (fileInput.value) {
-    fileInput.value.value = null // reset file input
+    fileInput.value.value = null
   }
 }
 
@@ -149,16 +152,21 @@ const submitForm = async () => {
       formData.append('image', imageFile.value)
     }
 
-    await fetch('http://localhost:5000/api/products', {
-      method: 'POST',
-      body: formData,
+    const response = await axios.post(`${backendURL}/products`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      withCredentials: true
     })
+
+    console.log('Produk ditambahkan:', response.data)
 
     alert('Produk berhasil ditambahkan!')
     router.push('/product')
   } catch (err) {
-    console.error(err)
+    console.error('Gagal menambahkan produk:', err)
     alert('Gagal menambahkan produk.')
   }
 }
 </script>
+

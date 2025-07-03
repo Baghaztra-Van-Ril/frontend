@@ -39,6 +39,7 @@
 
 <script setup>
 import Swal from 'sweetalert2'
+import axios from 'axios';
 
 const menu = [
   { name: "Dashboard", to: "/admin" },
@@ -55,51 +56,54 @@ const isLoading = ref(false)
 const logout = async () => {
   console.log("Logout function called");
   console.log("Backend URL:", backendURL);
-  
-  isLoading.value = true
-  const tokenCookie = useCookie('token')
-  const token = tokenCookie.value
-  
-  console.log("Token:", token ? "exists" : "not found");
-  
+
+  isLoading.value = true;
+
+  const result = await Swal.fire({
+    title: 'Yakin ingin logout?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Logout',
+    cancelButtonText: 'Batal',
+  });
+
+  if (!result.isConfirmed) {
+    isLoading.value = false;
+    return; 
+  }
+
   try {
-    if (token) {
+
       console.log("Starting logout request to:", `${backendURL}/auth/logout`);
-      
-      const response = await $fetch(`${backendURL}/auth/logout`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+
+      const response = await axios.post(
+        `${backendURL}/auth/logout`,
+        {}, 
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          withCredentials: true,
         }
-      })
+      );
 
       console.log("Logout response:", response);
 
-      // Hapus cookie di frontend
-      tokenCookie.value = null
-      
-      await navigateTo('/home')
-      await Swal.fire('Berhasil', 'Berhasil logout logout.', 'success')
-    } else {
-      // Jika tidak ada token, langsung hapus cookie dan redirect
-      console.log("No token found, direct logout");
-      tokenCookie.value = null
-  
-      await navigateTo('/home')
-      await Swal.fire('Info', 'Anda sudah logout.', 'info')
-    }
+
+      await navigateTo('/home');
+      await Swal.fire('Berhasil', 'Berhasil logout.', 'success');
   } catch (err) {
-    console.error("Logout error:", err)
-    
-    // Tetap hapus cookie meskipun ada error
-    tokenCookie.value = null
-    
-    await Swal.fire('Error', `Terjadi kesalahan saat logout: ${err.message || 'Unknown error'}`, 'error')
-    await navigateTo('/home') // Redirect tetap dilakukan
+    console.error("Logout error:", err);
+
+
+
+    await Swal.fire('Error', `Terjadi kesalahan saat logout: ${err.message || 'Unknown error'}`, 'error');
+    await navigateTo('/home');
   } finally {
     console.log("Logout process completed");
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
+
+
 </script>
