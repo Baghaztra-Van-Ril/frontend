@@ -41,15 +41,17 @@
                 class="w-16 h-16 rounded-md object-cover border"
               />
             </td>
-            <td class="px-4 py-2 text-gray-500 dark:text-gray-200 font-semibold">{{ promo.productName }}</td>
+            <td class="px-4 py-2 text-gray-500 dark:text-gray-200 font-semibold">
+              {{ promo.product?.name || 'N/A' }}
+            </td>
             <td class="px-4 py-2 text-gray-500 line-through dark:text-gray-200 font-semibold">
-              Rp.{{ promo.price.toLocaleString() }}
+              Rp.{{ formatPrice(promo.product?.price) }}
             </td>
             <td class="px-4 py-2 text-red-600 font-semibold">
-              {{ (promo.discount * 100).toFixed(0) }}%
+              {{ formatDiscount(promo.discount) }}%
             </td>
             <td class="px-4 py-2 text-green-600 font-semibold">
-              Rp.{{ (promo.price * (1 - promo.discount)).toLocaleString() }}
+              Rp.{{ calculateDiscountedPrice(promo.product?.price, promo.discount) }}
             </td>
             <td class="px-4 py-2">
               <div class="flex gap-2">
@@ -100,40 +102,46 @@
 </template>
 
 <script setup>
+import { onMounted, ref, computed } from 'vue'
 import Swal from 'sweetalert2'
+import axios from 'axios'
+
 definePageMeta({
   layout: 'admin'
 })
 
-const promos = [
-  {
-    id: 1,
-    productId: 101,
-    productName: 'ADIBAS',
-    price: 1200000,
-    imageUrl: 'https://picsum.photos/200/200?11',
-    discount: 0.2
-  },
-  {
-    id: 2,
-    productId: 102,
-    productName: 'Nikes AirMaxim',
-    price: 1900000,
-    imageUrl: 'https://picsum.photos/200/200?12',
-    discount: 0.15
-  },
-  {
-    id: 3,
-    productId: 103,
-    productName: 'Putangina',
-    price: 1090000,
-    imageUrl: 'https://picsum.photos/200/200?13',
-    discount: 0.4
-  },
-]
+const config = useRuntimeConfig()
+const backendURL = config.public.BACKEND_URL_2
 
-const handleDelete = (promoId) => {
-  Swal.fire({
+const promos = ref([])
+
+const fetchPromos = async () => {
+  console.log('PROMO DATA:', promos.value)
+  
+  try {
+    const response = await axios.get(`${backendURL}/promos`, {
+      withCredentials: true,
+      headers: {
+        'Cache-Control': 'no-cache'
+      }
+    })
+    // Periksa apakah respons memiliki key 'data'
+    if (Array.isArray(response.data.data)) {
+      promos.value = response.data.data
+    } else {
+      console.warn('Format data tidak sesuai:', response.data)
+    }
+  } catch (error) {
+    console.error('Gagal mengambil data promo:', error)
+  }
+}
+
+onMounted(() => {
+  fetchPromos()
+})
+
+const handleDelete = async (promoId) => {
+  const result = await Swal.fire({
     title: 'Yakin ingin menghapus promo ini?',
     text: 'Data yang dihapus tidak bisa dikembalikan!',
     icon: 'warning',
@@ -142,34 +150,63 @@ const handleDelete = (promoId) => {
     cancelButtonColor: '#3085d6',
     confirmButtonText: 'Ya, hapus!',
     cancelButtonText: 'Batal',
-  }).then((result) => {
-    if (result.isConfirmed) {
-      const index = promos.findIndex(p => p.id === promoId)
-      if (index !== -1) {
-        promos.splice(index, 1)
-        Swal.fire('Terhapus!', 'Promo telah dihapus.', 'success')
-      }
-    }
   })
+
+  if (result.isConfirmed) {
+    try {
+      await axios.delete(`${backendURL}/promos/${promoId}`, {
+        withCredentials: true
+      })
+      promos.value = promos.value.filter(p => p.id !== promoId)
+      Swal.fire('Terhapus!', 'Promo telah dihapus.', 'success')
+    } catch (error) {
+      console.error('Gagal menghapus promo:', error)
+      Swal.fire('Gagal!', 'Gagal menghapus promo.', 'error')
+    }
+  }
+}
+
+// Helper functions untuk format data
+const formatPrice = (price) => {
+  if (!price || price === 0) return 'N/A'
+  return price.toLocaleString('id-ID')
+}
+
+const formatDiscount = (discount) => {
+  if (!discount || discount === 0) return '0'
+  // Pastikan nilai diskon sudah dalam format yang benar
+  const discountValue = Number(discount*100)
+  return discountValue.toString()
+}
+
+const calculateDiscountedPrice = (price, discount) => {
+  if (!price || !discount) return 'N/A'
+  
+  const originalPrice = Number(price)
+  const discountPercent = Number(discount)
+  
+  // Validasi input
+  if (isNaN(originalPrice) || isNaN(discountPercent)) return 'N/A'
+  
+  // Hitung harga setelah diskon
+  const discountedPrice = originalPrice * (1 - discountPercent)
+  
+  return discountedPrice.toLocaleString('id-ID')
 }
 
 const itemsPerPage = 10
 const currentPage = ref(1)
 
-const totalPages = computed(() => Math.ceil(promos.length / itemsPerPage))
+const totalPages = computed(() => Math.ceil(promos.value.length / itemsPerPage))
 
 const paginatedPromos = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage
-  return promos.slice(start, start + itemsPerPage)
+  return promos.value.slice(start, start + itemsPerPage)
 })
 
 const startItem = computed(() => (currentPage.value - 1) * itemsPerPage + 1)
 const endItem = computed(() => {
   const end = currentPage.value * itemsPerPage
-  return end > promos.length ? promos.length : end
+  return end > promos.value.length ? promos.value.length : end
 })
-
-const tambahPromo = () => {
-  alert("Navigasi ke halaman tambah promo atau tampilkan modal form")
-}
 </script>

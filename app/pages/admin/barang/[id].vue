@@ -91,10 +91,14 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import axios from 'axios'
 
 const router = useRouter()
 const route = useRoute()
 const id = route.params.id
+
+const config = useRuntimeConfig()
+const backendURL = config.public.BACKEND_URL_2
 
 const form = ref({
   name: '',
@@ -112,10 +116,14 @@ const fileInput = ref(null)
 
 const isImageFile = (file) => file && file.type.startsWith('image/')
 
+// Fetch produk berdasarkan ID
 const fetchProduct = async () => {
   try {
-    const res = await fetch(`http://localhost:5000/api/products/${id}`)
-    const data = await res.json()
+    const response = await axios.get(`${backendURL}/products/${id}`, {
+      withCredentials: true
+    })
+
+    const data = response.data
 
     form.value = {
       name: data.name,
@@ -123,7 +131,7 @@ const fetchProduct = async () => {
       stock: data.stock,
       size: data.size,
       price: data.price,
-      image: data.image // asumsi URL lengkap
+      image: data.image // URL gambar lama
     }
   } catch (err) {
     console.error('Gagal memuat data produk:', err)
@@ -166,6 +174,7 @@ const triggerFileInput = () => {
   fileInput.value.click()
 }
 
+// Submit form edit produk
 const submitForm = async () => {
   try {
     const formData = new FormData()
@@ -174,19 +183,23 @@ const submitForm = async () => {
     formData.append('stock', form.value.stock)
     formData.append('size', form.value.size)
     formData.append('price', form.value.price)
+    
     if (imageFile.value) {
       formData.append('image', imageFile.value)
     }
 
-    await fetch(`http://localhost:5000/api/products/${id}`, {
-      method: 'PUT',
-      body: formData,
+    await axios.put(`${backendURL}/products/${id}`, formData, {
+      withCredentials: true,
+      headers: {
+         'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache'
+      }
     })
 
     alert('Produk berhasil diupdate!')
     router.push('/admin/barang')
   } catch (err) {
-    console.error(err)
+    console.error('Gagal mengupdate produk:', err)
     alert('Gagal mengupdate produk.')
   }
 }

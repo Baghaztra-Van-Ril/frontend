@@ -8,19 +8,24 @@
         <select v-model="form.productId" @change="onProductChange" required class="w-full border rounded px-3 py-2">
           <option value="">-- Pilih Produk --</option>
           <option v-for="product in products" :key="product.id" :value="product.id">
-            {{ product.name }}
+            {{ product.name || product.title || product.productName || 'Unnamed Product' }}
           </option>
         </select>
+        <!-- Debug info -->
+        <p class="text-xs text-gray-500 mt-1">Total produk: {{ products.length }}</p>
       </div>
 
       <div v-if="selectedProduct">
         <label class="block font-medium mb-1">Harga Produk</label>
-        <p class="border border-gray-300 rounded px-3 py-2">{{ selectedProduct.price.toLocaleString('id-ID') }}</p>
+        <p class="border border-gray-300 rounded px-3 py-2">
+          {{ (selectedProduct.price || selectedProduct.harga || 0).toLocaleString('id-ID') }}
+        </p>
       </div>
 
       <div>
         <label class="block font-medium mb-1">Diskon (%)</label>
-        <input v-model.number="form.discount" type="number" min="0" max="100" required class="w-full border rounded px-3 py-2" />
+        <input v-model.number="form.discount" type="number" min="0" max="100" step="0.1" required class="w-full border rounded px-3 py-2" />
+        <p class="text-sm text-gray-500 mt-1">Contoh: 10 untuk diskon 10%</p>
       </div>
 
       <div class="flex items-center gap-2">
@@ -73,8 +78,12 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import Swal from 'sweetalert2'
+import axios from 'axios'
 
 const router = useRouter()
+
+const config = useRuntimeConfig()
+const backendURL = config.public.BACKEND_URL_2 // atau sesuaikan jika kamu pakai _2
 
 const products = ref([])
 const form = ref({
@@ -126,17 +135,36 @@ const triggerFileInput = () => {
 }
 
 const onProductChange = () => {
-  // Saat produk dipilih, harga otomatis ditampilkan melalui `selectedProduct`
+  // Harga ditampilkan otomatis melalui selectedProduct
 }
 
 onMounted(async () => {
   try {
-    const res = await fetch('http://localhost:5000/api/products')
-    const data = await res.json()
-    products.value = data
+    const response = await axios.get(`${backendURL}/products`, {
+      withCredentials: true
+    })
+    
+    // Debug: log response untuk melihat struktur data
+    console.log('API Response:', response.data)
+    
+    // Periksa apakah response.data adalah array atau object
+    if (Array.isArray(response.data)) {
+      products.value = response.data
+    } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+      // Jika API mengembalikan format { data: [...] }
+      products.value = response.data.data
+    } else if (response.data && response.data.products && Array.isArray(response.data.products)) {
+      // Jika API mengembalikan format { products: [...] }
+      products.value = response.data.products
+    } else {
+      console.error('Unexpected response format:', response.data)
+      products.value = []
+    }
+    
+    console.log('Products loaded:', products.value)
   } catch (err) {
-    console.error(err)
-    Swal.fire('Gagal mengambil produk', '', 'error')
+    console.error('Error fetching products:', err)
+    Swal.fire('Gagal mengambil produk', err.message || 'Terjadi kesalahan', 'error')
   }
 })
 
@@ -146,25 +174,44 @@ const submitForm = async () => {
     return
   }
 
+  // Validasi discount
+  if (form.value.discount < 0 || form.value.discount > 100) {
+    Swal.fire('Diskon tidak valid!', 'Diskon harus antara 0-100%.', 'warning')
+    return
+  }
+
   const formData = new FormData()
-  formData.append('productId', form.value.productId)
-  formData.append('discount', form.value.discount)
-  formData.append('isActive', form.value.isActive)
+  formData.append('productId', form.value.productId.toString())
+  
+  // Konversi persentase ke desimal (contoh: 10% menjadi 0.1)
+  const discountDecimal = form.value.discount / 100
+  formData.append('discount', discountDecimal.toString())
+  
+  formData.append('isActive', form.value.isActive.toString())
   formData.append('image', imageFile.value)
 
   try {
-    const res = await fetch('http://localhost:5000/api/promos', {
-      method: 'POST',
-      body: formData
+    const res = await axios.post(`${backendURL}/promos`, formData, {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
     })
 
-    if (!res.ok) throw new Error('Gagal')
-
     Swal.fire('Berhasil!', 'Promo berhasil ditambahkan.', 'success')
-    router.push('/promo')
+    router.push('/admin/promo') // sesuaikan dengan route halaman promo kamu
   } catch (err) {
     console.error(err)
-    Swal.fire('Gagal menambahkan promo', '', 'error')
+    
+    // Tambahkan error handling yang lebih spesifik
+    if (err.response) {
+      const errorMessage = err.response.data?.message || 'Gagal menambahkan promo'
+      Swal.fire('Error!', errorMessage, 'error')
+    } else if (err.request) {
+      Swal.fire('Error!', 'Tidak dapat terhubung ke server', 'error')
+    } else {
+      Swal.fire('Error!', 'Terjadi kesalahan yang tidak terduga', 'error')
+    }
   }
 }
 </script>

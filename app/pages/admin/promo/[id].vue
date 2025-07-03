@@ -2,17 +2,46 @@
   <div class="max-w-xl mx-auto p-6">
     <h1 class="text-2xl font-bold mb-4">Edit Promo</h1>
 
-    <form @submit.prevent="submitForm" class="space-y-4">
+    <div v-if="isLoading" class="text-center py-10 text-gray-500">
+      Memuat data promo...
+    </div>
+
+    <form v-else @submit.prevent="submitForm" class="space-y-4">
       <div>
         <label class="block font-medium mb-1">Pilih Produk</label>
+        
+        <!-- Tampilkan produk yang sedang dipilih -->
+        <div v-if="selectedProduct" class="mb-2 p-3 bg-blue-50 border border-blue-200 rounded">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="font-medium text-blue-800">Produk Saat Ini:</span>
+              <span class="text-blue-700">{{ selectedProduct.name }}</span>
+            </div>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                class="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded hover:bg-blue-200"
+              >
+              </button>
+            </div>
+          </div>
+        </div>
+
         <select
           v-model="form.productId"
           required
           class="w-full border border-gray-300 rounded px-3 py-2"
+          @change="onProductChange"
         >
-          <option value="" disabled>Pilih Produk</option>
-          <option v-for="product in products" :key="product._id" :value="product._id">
+          <option value="">Pilih Produk</option>
+          <option
+            v-for="product in products"
+            :key="product.id"
+            :value="product.id"
+            :class="{ 'bg-blue-50 font-medium': product.id === form.productId }"
+          >
             {{ product.name }}
+            {{ product.id === form.productId ? '(Sedang Dipilih)' : '' }}
           </option>
         </select>
       </div>
@@ -27,6 +56,31 @@
           required
           class="w-full border border-gray-300 rounded px-3 py-2"
         />
+      </div>
+
+      <!-- Status Aktif -->
+      <div>
+        <label class="block font-medium mb-1">Status Promo</label>
+        <div class="flex items-center gap-4">
+          <label class="flex items-center">
+            <input
+              v-model="form.isActive"
+              type="radio"
+              :value="true"
+              class="mr-2"
+            />
+            Aktif
+          </label>
+          <label class="flex items-center">
+            <input
+              v-model="form.isActive"
+              type="radio"
+              :value="false"
+              class="mr-2"
+            />
+            Tidak Aktif
+          </label>
+        </div>
       </div>
 
       <!-- Upload Gambar -->
@@ -86,17 +140,24 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import axios from 'axios'
+
+const config = useRuntimeConfig()
+const backendURL = config.public.BACKEND_URL_2
 
 const router = useRouter()
 const route = useRoute()
 const id = route.params.id
 
+const isLoading = ref(true)
+
 const form = ref({
   productId: '',
   discount: 0,
-  image: ''
+  image: '',
+  isActive: true
 })
 
 const products = ref([])
@@ -105,34 +166,46 @@ const imagePreview = ref(null)
 const invalidFile = ref(false)
 const fileInput = ref(null)
 
+// Computed property untuk mendapatkan produk yang sedang dipilih
+const selectedProduct = computed(() => {
+  return products.value.find(product => product.id === form.value.productId)
+})
+
 const isImageFile = (file) => file && file.type.startsWith('image/')
+
+const fetchProducts = async () => {
+  try {
+    const res = await axios.get(`${backendURL}/products`, {
+      withCredentials: true,
+    })
+    products.value = res.data.data
+  } catch (err) {
+    console.error('Gagal memuat produk:', err)
+  }
+}
 
 const fetchPromo = async () => {
   try {
-    const res = await fetch(`http://localhost:5000/api/promos/${id}`)
-    const data = await res.json()
+    const res = await axios.get(`${backendURL}/promos/${id}`, {
+      withCredentials: true,
+    })
+    const data = res.data
     form.value = {
       productId: data.productId,
-      discount: data.discount * 100, // jika disimpan dalam bentuk 0.2
+      discount: data.discount * 100,
       image: data.image,
+      isActive: data.isActive ?? true
     }
   } catch (err) {
     console.error('Gagal memuat promo:', err)
   }
 }
 
-const fetchProducts = async () => {
-  try {
-    const res = await fetch(`http://localhost:5000/api/products`)
-    products.value = await res.json()
-  } catch (err) {
-    console.error('Gagal memuat produk:', err)
-  }
-}
-
-onMounted(() => {
-  fetchPromo()
-  fetchProducts()
+onMounted(async () => {
+  isLoading.value = true
+  await fetchProducts()
+  await fetchPromo()
+  isLoading.value = false
 })
 
 const handleFileChange = (event) => {
@@ -169,25 +242,44 @@ const triggerFileInput = () => {
   fileInput.value.click()
 }
 
+const onProductChange = () => {
+  // Ketika produk berubah, bisa ditambahkan logic tambahan di sini
+  console.log('Produk dipilih:', form.value.productId)
+}
+
+const editProduct = () => {
+  if (form.value.productId) {
+    // Navigasi ke halaman edit produk dengan ID yang dipilih
+    router.push(`/admin/products/edit/${form.value.productId}`)
+  }
+}
+
 const submitForm = async () => {
   try {
     const formData = new FormData()
-    formData.append('productId', form.value.productId)
-    formData.append('discount', form.value.discount / 100) // konversi kembali ke 0.xx
+    formData.append('discount', (form.value.discount / 100).toString())
+    formData.append('isActive', form.value.isActive.toString())
+
+    if (form.value.productId) {
+      formData.append('productId', form.value.productId)
+    }
+
     if (imageFile.value) {
       formData.append('image', imageFile.value)
     }
 
-    await fetch(`http://localhost:5000/api/promos/${id}`, {
-      method: 'PUT',
-      body: formData,
+    await axios.put(`${backendURL}/promos/${id}`, formData, {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
     })
 
     alert('Promo berhasil diupdate!')
     router.push('/admin/promo')
   } catch (err) {
-    console.error(err)
-    alert('Gagal mengupdate promo.')
+    console.error('Error details:', err.response?.data || err.message)
+    alert(`Gagal mengupdate promo: ${err.response?.data?.message || err.message}`)
   }
 }
 </script>
