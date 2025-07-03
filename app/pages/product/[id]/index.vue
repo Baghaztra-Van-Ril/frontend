@@ -50,14 +50,14 @@
       </div>
 
       <div class="mt-4">
-        <button 
-          @click="handleBuy" 
+        <NuxtLink 
+          :to="`/product/${id}/payment`" 
           :disabled="productData.stock === 0"
           class="flex items-center justify-center px-6 py-3 rounded-lg transition"
           :class="productData.stock === 0 ? 'bg-gray-400 cursor-not-allowed text-gray-200' : 'bg-orange-500 hover:bg-orange-600 text-white'"
         >
           <ShoppingCartIcon class="w-6 h-6 mr-2" /> {{ productData.stock === 0 ? 'Stok Habis' : 'Beli' }}
-        </button>
+        </NuxtLink>
       </div>
     </div>
   </div>
@@ -67,14 +67,15 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { HeartIcon, ShoppingCartIcon } from '@heroicons/vue/24/solid'
+import axios from 'axios'
 
+const config = useRuntimeConfig()
 const route = useRoute()
 const router = useRouter()
+const backendURL2 = config.public.BACKEND_URL_2
+const id = computed(() => route.params.id)
 
 const productId = computed(() => route.params.id)
-const productData = ref(null)
-const pending = ref(true)
-const error = ref(null)
 const favoriteCount = ref(72)
 
 const activePromo = computed(() => {
@@ -89,54 +90,24 @@ const finalPrice = computed(() => {
   return Math.round(productData.value.price * discount)
 })
 
-const fetchProduct = async () => {
-  try {
-    pending.value = true
-    error.value = null
-    console.log(productId.value);
-    
-    const response = await $fetch(`http://localhost:3020/api/products/${productId.value}`)
-    if (response.success) {
-      productData.value = response.data
-    } else {
-      throw new Error(response.message || 'Gagal mengambil produk')
-    }
-  } catch (err) {
-    error.value = err
-    productData.value = null
-  } finally {
-    pending.value = false
-  }
-}
-
-const refresh = () => fetchProduct()
-
-const handleBuy = async () => {
-  if (!productData.value || productData.value.stock === 0) {
-    alert('Produk tidak tersedia atau stok habis.')
-    return
-  }
-
-  try {
-    const response = await $fetch('http://localhost:3010/api/payments/create', {
-      method: 'POST',
-      body: {
-        productId: productData.value.id,
-        quantity: 1,
-      }
+const { data: productData, pending, error, refresh } = await useAsyncData(
+  'fetch-product',
+  async () => {
+    const response = await axios.get(`${backendURL2}/products/${productId.value}`,{
+       withCredentials: true
     })
+    const data = response.data
 
-    if (response.success) {
-      const redirectUrl = response.data.redirect_url
-      window.location.href = redirectUrl
+    if (data.success) {
+      return data.data // kembalikan hanya data produk
     } else {
-      alert('Gagal membuat pembayaran.')
+      throw new Error(data.message || 'Gagal mengambil produk')
     }
-  } catch (err) {
-    alert('Terjadi kesalahan saat membuat pembayaran.')
-    console.error(err)
+  },
+  {
+    watch: [productId],
   }
-}
+)
 
 const handleFavorite = () => {
   favoriteCount.value += 1
@@ -147,9 +118,6 @@ const handleImageError = (event) => {
   event.target.src = 'https://via.placeholder.com/400x400/CCCCCC/FFFFFF?text=No+Image'
 }
 
-onMounted(() => {
-  fetchProduct()
-})
 
 useSeoMeta({
   title: () => productData.value?.name || 'Loading Product...',

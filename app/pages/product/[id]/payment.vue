@@ -147,7 +147,8 @@ onMounted(() => {
 });
 
 definePageMeta({
-  layout: 'home'
+  layout: 'home',
+  middleware: 'is-login'
 });
 </script>
 
