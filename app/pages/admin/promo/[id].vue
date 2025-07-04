@@ -189,7 +189,7 @@ const fetchPromo = async () => {
     const res = await axios.get(`${backendURL}/promos/${id}`, {
       withCredentials: true,
     })
-    const data = res.data
+    const data = res.data.data
     form.value = {
       productId: data.productId,
       discount: data.discount * 100,

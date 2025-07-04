@@ -123,7 +123,7 @@ const fetchProduct = async () => {
       withCredentials: true
     })
 
-    const data = response.data
+    const data = response.data.data
 
     form.value = {
       name: data.name,

@@ -4,22 +4,33 @@
       <h1 class="text-3xl font-bold">Produk Kami</h1>
       
       <!-- Product count and filters -->
-      <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-4 pt-5">
         <span class="text-gray-600" v-if="!loading">
           {{ products.length }} produk ditemukan
         </span>
         
         <!-- Search input -->
-        <div class="relative">
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Cari produk..."
-            class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-          <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-          </svg>
+        <div class="flex items-center space-x-2">
+      
+          <div class="relative">
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Cari produk..."
+              class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+          </div>
+          <Ubutton
+            type="button"
+            class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            @click="searchProducts"
+            aria-label="Cari"
+          > 
+            <Icon name="heroicons:magnifying-glass" class="h-5 w-5" />
+          </Ubutton>
         </div>
       </div>
     </div>
@@ -152,6 +163,7 @@
 </template>
 
 <script setup>
+import axios from 'axios'
 import { ref, computed, onMounted, watch } from 'vue'
 
 // Get runtime config
@@ -168,7 +180,9 @@ const searchQuery = ref('')
 // Computed properties
 const filteredProducts = computed(() => {
   if (!searchQuery.value) return products.value
-  
+  axios.get(`${config.public.BACKEND_URL_2}/products`, {
+    params: { q: searchQuery.value }
+  })  
   return products.value.filter(product =>
     product.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
     product.description.toLowerCase().includes(searchQuery.value.toLowerCase())
@@ -205,10 +219,6 @@ const visiblePages = computed(() => {
   return pages
 })
 
-// Watch for search query changes to reset pagination
-watch(searchQuery, () => {
-  currentPage.value = 1
-})
 
 // Fetch products from API
 const fetchProducts = async () => {
@@ -217,6 +227,28 @@ const fetchProducts = async () => {
     error.value = null
     
     const response = await $fetch(`${config.public.BACKEND_URL_2}/products`)
+    
+    if (response.success) {
+      products.value = response.data.filter(product => !product.isDeleted)
+    } else {
+      throw new Error(response.message || 'Gagal mengambil data produk')
+    }
+  } catch (err) {
+    console.error('Error fetching products:', err)
+    error.value = err.message || 'Terjadi kesalahan saat mengambil data produk'
+    products.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+const searchProducts = async () => {
+  try {
+    loading.value = true
+    error.value = null
+    const response = await $fetch(`${config.public.BACKEND_URL_2}/products`, {
+      params: { q: searchQuery.value }
+    })
     
     if (response.success) {
       products.value = response.data.filter(product => !product.isDeleted)
