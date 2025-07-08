@@ -97,7 +97,7 @@ const { data: productData, pending, error, refresh } = await useAsyncData(
        withCredentials: true
     })
     const data = response.data
-
+    console.log(data.data)
     if (data.success) {
       return data.data // kembalikan hanya data produk
     } else {
@@ -109,10 +109,59 @@ const { data: productData, pending, error, refresh } = await useAsyncData(
   }
 )
 
-const handleFavorite = () => {
-  favoriteCount.value += 1
-  alert(`Produk ${productData.value.name} ditambahkan ke favorit!`)
+const handleFavorite = async () => {
+  try {
+    // Make sure you're using the correct backend URL
+    const config = useRuntimeConfig()
+    const backendURL = config.public.BACKEND_URL_2 // or whatever your correct config key is
+    console.log(productId.value)
+    const response = await axios.post(`${backendURL2}/favorites`, { // Remove trailing slash
+      // userId: userId,        // Pass as parameter instead of hardcoding
+      productId: productId.value   // Pass as parameter instead of hardcoding
+    }, {
+      withCredentials: true,
+    })
+
+    if (response.data.success) {
+      console.log('Berhasil difavoritkan:', response.data.message)
+      // Add user feedback
+      alert('Produk berhasil ditambahkan ke favorit!')
+      // Or use a toast notification if you have one
+    } else {
+      console.warn('Gagal favorit:', response.data.message)
+      alert('Gagal menambahkan ke favorit: ' + response.data.message)
+    }
+  } catch (error) {
+    console.error('Terjadi kesalahan saat memfavoritkan:', error)
+    
+    // Handle different error types
+    if (error.response) {
+      // Server responded with error status
+      const status = error.response.status
+      const message = error.response.data?.message || error.message
+      
+      if (status === 404) {
+        alert('Endpoint tidak ditemukan. Periksa URL backend.')
+      } else if (status === 401) {
+        alert('Unauthorized. Silakan login kembali.')
+      } else if (status === 500) {
+        alert('Server error. Silakan coba lagi nanti.')
+      } else {
+        alert(`Gagal memfavoritkan: ${message}`)
+      }
+    } else if (error.request) {
+      // Request was made but no response received
+      alert('Tidak dapat terhubung ke server. Periksa koneksi internet.')
+    } else {
+      // Something else happened
+      alert('Terjadi kesalahan yang tidak diketahui.')
+    }
+  }
 }
+
+// Usage example:
+// handleFavorite(7, 1) // productId: 7, userId: 1
+
 
 const handleImageError = (event) => {
   event.target.src = 'https://via.placeholder.com/400x400/CCCCCC/FFFFFF?text=No+Image'
