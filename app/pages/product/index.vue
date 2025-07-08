@@ -3,7 +3,7 @@
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-3xl font-bold">Produk Kami</h1>
       
-      <!-- Product count and filters -->
+      <!-- Product count and search -->
       <div class="flex items-center space-x-4 pt-5">
         <span class="text-gray-600" v-if="!loading">
           {{ products.length }} produk ditemukan
@@ -11,26 +11,26 @@
         
         <!-- Search input -->
         <div class="flex items-center space-x-2">
-      
           <div class="relative">
             <input
               v-model="searchQuery"
               type="text"
               placeholder="Cari produk..."
               class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              @keyup.enter="searchProducts"
             />
             <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
             </svg>
           </div>
-          <Ubutton
+          <button
             type="button"
-            class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            class="px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
             @click="searchProducts"
             aria-label="Cari"
           > 
             <Icon name="heroicons:magnifying-glass" class="h-5 w-5" />
-          </Ubutton>
+          </button>
         </div>
       </div>
     </div>
@@ -64,7 +64,7 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="filteredProducts.length === 0 && !loading" class="text-center py-12">
+    <div v-else-if="products.length === 0" class="text-center py-12">
       <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 max-w-md mx-auto">
         <div class="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-full mx-auto mb-4">
           <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,7 +82,7 @@
         </p>
         <button 
           v-if="searchQuery"
-          @click="searchQuery = ''" 
+          @click="clearSearch" 
           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           Lihat Semua Produk
@@ -155,16 +155,15 @@
 
       <!-- Products per page info -->
       <div class="text-center mt-4 text-sm text-gray-600">
-        Menampilkan {{ startIndex + 1 }}-{{ Math.min(endIndex, filteredProducts.length) }} 
-        dari {{ filteredProducts.length }} produk
+        Menampilkan {{ startIndex + 1 }}-{{ Math.min(endIndex, products.length) }} 
+        dari {{ products.length }} produk
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import axios from 'axios'
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 // Get runtime config
 const config = useRuntimeConfig()
@@ -178,24 +177,13 @@ const itemsPerPage = ref(8)
 const searchQuery = ref('')
 
 // Computed properties
-const filteredProducts = computed(() => {
-  if (!searchQuery.value) return products.value
-  axios.get(`${config.public.BACKEND_URL_2}/products`, {
-    params: { q: searchQuery.value }
-  })  
-  return products.value.filter(product =>
-    product.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    product.description.toLowerCase().includes(searchQuery.value.toLowerCase())
-  )
-})
-
 const totalPages = computed(() =>
-  Math.ceil(filteredProducts.value.length / itemsPerPage.value)
+  Math.ceil(products.value.length / itemsPerPage.value)
 )
 
 const paginatedProducts = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage.value
-  return filteredProducts.value.slice(start, start + itemsPerPage.value)
+  return products.value.slice(start, start + itemsPerPage.value)
 })
 
 const startIndex = computed(() => (currentPage.value - 1) * itemsPerPage.value)
@@ -219,14 +207,13 @@ const visiblePages = computed(() => {
   return pages
 })
 
-
-// Fetch products from API
+// Fetch all products (initial load)
 const fetchProducts = async () => {
   try {
     loading.value = true
     error.value = null
     
-    const response = await $fetch(`${config.public.BACKEND_URL_2}/products`)
+    const response = await $fetch(`${config.public.BACKEND_URL_2}/products/`)
     
     if (response.success) {
       products.value = response.data.filter(product => !product.isDeleted)
@@ -242,26 +229,38 @@ const fetchProducts = async () => {
   }
 }
 
+// Search products (only runs when button is clicked)
 const searchProducts = async () => {
   try {
     loading.value = true
     error.value = null
-    const response = await $fetch(`${config.public.BACKEND_URL_2}/products`, {
-      params: { q: searchQuery.value }
-    })
+    currentPage.value = 1 // Reset to first page
+    
+    const url = `${config.public.BACKEND_URL_2}/products/search/`
+    const params = searchQuery.value ? { q: searchQuery.value } : {}
+    
+    const response = await $fetch(url, { params })
     
     if (response.success) {
-      products.value = response.data.filter(product => !product.isDeleted)
+      products.value = response.data
+      console.log("saas",products.value)
     } else {
       throw new Error(response.message || 'Gagal mengambil data produk')
     }
   } catch (err) {
-    console.error('Error fetching products:', err)
-    error.value = err.message || 'Terjadi kesalahan saat mengambil data produk'
+    console.error('Error searching products:', err)
+    error.value = err.message || 'Terjadi kesalahan saat mencari produk'
     products.value = []
   } finally {
     loading.value = false
   }
+}
+
+// Clear search and load all products
+const clearSearch = () => {
+  searchQuery.value = ''
+  currentPage.value = 1
+  fetchProducts()
 }
 
 // Fetch data on component mount

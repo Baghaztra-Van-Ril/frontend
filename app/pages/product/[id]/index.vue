@@ -109,6 +109,26 @@ const { data: productData, pending, error, refresh } = await useAsyncData(
   }
 )
 
+// const handleBuy = async () => {
+//   const productId = route.params.id || id.value
+//   const redirectPath = `/product/${productId}/payment`
+
+//   try {
+//     // Cek apakah sudah login
+//     const res = await axios.get(`${backendURL1}/auth/me`, {
+//       withCredentials: true,
+//     });
+
+//     // Jika sudah login, langsung ke halaman payment
+//     if (res.status === 200||304) {
+//       return router.push(redirectPath)
+//     }
+//   }catch (err) {
+//   console.error('Error saat cek login:', err);
+//   sessionStorage.setItem('redirectAfterLogin', redirectPath);
+//   window.location.href = `${backendURL1}/auth/google`;
+// }
+
 const handleFavorite = () => {
   favoriteCount.value += 1
   alert(`Produk ${productData.value.name} ditambahkan ke favorit!`)
