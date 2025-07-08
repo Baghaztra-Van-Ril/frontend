@@ -3,13 +3,11 @@
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-3xl font-bold">Produk Kami</h1>
       
-      <!-- Product count and search -->
       <div class="flex items-center space-x-4 pt-5">
         <span class="text-gray-600" v-if="!loading">
           {{ products.length }} produk ditemukan
         </span>
         
-        <!-- Search input -->
         <div class="flex items-center space-x-2">
           <div class="relative">
             <input
@@ -25,7 +23,7 @@
           </div>
           <button
             type="button"
-            class="px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+            class="px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-400 transition-colors"
             @click="searchProducts"
             aria-label="Cari"
           > 
@@ -35,7 +33,6 @@
       </div>
     </div>
 
-    <!-- Loading State -->
     <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       <div v-for="i in 8" :key="i" class="animate-pulse">
         <div class="bg-gray-300 h-48 rounded-lg mb-4"></div>
@@ -44,7 +41,6 @@
       </div>
     </div>
 
-    <!-- Error State -->
     <div v-else-if="error" class="text-center py-12">
       <div class="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
         <div class="flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mx-auto mb-4">
@@ -63,7 +59,6 @@
       </div>
     </div>
 
-    <!-- Empty State -->
     <div v-else-if="products.length === 0" class="text-center py-12">
       <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 max-w-md mx-auto">
         <div class="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-full mx-auto mb-4">
@@ -90,7 +85,6 @@
       </div>
     </div>
 
-    <!-- Products Grid -->
     <div v-else>
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <ProductCard
@@ -104,9 +98,7 @@
         />
       </div>
 
-      <!-- Pagination -->
       <div v-if="totalPages > 1" class="flex justify-center mt-8 gap-4 items-center">
-        <!-- Tombol Prev -->
         <button
           @click="currentPage--"
           :disabled="currentPage === 1"
@@ -118,7 +110,6 @@
           <span>Prev</span>
         </button>
 
-        <!-- Page Numbers -->
         <div class="flex gap-2">
           <button
             v-for="page in visiblePages"
@@ -135,12 +126,10 @@
           </button>
         </div>
 
-        <!-- Info Halaman -->
         <span class="font-semibold text-gray-700 px-2">
           {{ currentPage }} / {{ totalPages }}
         </span>
 
-        <!-- Tombol Next -->
         <button
           @click="currentPage++"
           :disabled="currentPage === totalPages"
@@ -153,7 +142,6 @@
         </button>
       </div>
 
-      <!-- Products per page info -->
       <div class="text-center mt-4 text-sm text-gray-600">
         Menampilkan {{ startIndex + 1 }}-{{ Math.min(endIndex, products.length) }} 
         dari {{ products.length }} produk
@@ -165,10 +153,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 
-// Get runtime config
 const config = useRuntimeConfig()
 
-// Reactive data
 const products = ref([])
 const loading = ref(true)
 const error = ref(null)
@@ -176,7 +162,6 @@ const currentPage = ref(1)
 const itemsPerPage = ref(8)
 const searchQuery = ref('')
 
-// Computed properties
 const totalPages = computed(() =>
   Math.ceil(products.value.length / itemsPerPage.value)
 )
@@ -189,7 +174,6 @@ const paginatedProducts = computed(() => {
 const startIndex = computed(() => (currentPage.value - 1) * itemsPerPage.value)
 const endIndex = computed(() => currentPage.value * itemsPerPage.value)
 
-// Visible page numbers for pagination
 const visiblePages = computed(() => {
   const pages = []
   const maxVisible = 5
@@ -207,7 +191,6 @@ const visiblePages = computed(() => {
   return pages
 })
 
-// Fetch all products (initial load)
 const fetchProducts = async () => {
   try {
     loading.value = true
@@ -229,12 +212,16 @@ const fetchProducts = async () => {
   }
 }
 
-// Search products (only runs when button is clicked)
+
 const searchProducts = async () => {
+    if (!searchQuery.value || searchQuery.value.trim() === '') {
+    await fetchProducts()
+    return
+  }
   try {
     loading.value = true
     error.value = null
-    currentPage.value = 1 // Reset to first page
+    currentPage.value = 1
     
     const url = `${config.public.BACKEND_URL_2}/products/search/`
     const params = searchQuery.value ? { q: searchQuery.value } : {}
@@ -256,14 +243,12 @@ const searchProducts = async () => {
   }
 }
 
-// Clear search and load all products
 const clearSearch = () => {
   searchQuery.value = ''
   currentPage.value = 1
   fetchProducts()
 }
 
-// Fetch data on component mount
 onMounted(() => {
   fetchProducts()
 })
