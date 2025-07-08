@@ -1,6 +1,5 @@
 <template>
   <div class="bg-gray-200 dark:bg-gray-900 flex justify-center p-6">
-    <!-- Loading State -->
     <div v-if="pending" class="bg-white dark:bg-gray-800 shadow-xl rounded-xl p-6 flex flex-col items-center gap-6 w-full h-full">
       <div class="w-120 h-120 bg-gray-300 dark:bg-gray-600 rounded-xl animate-pulse"></div>
       <div class="w-32 h-8 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
@@ -8,7 +7,6 @@
       <div class="w-64 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
     </div>
 
-    <!-- Error State -->
     <div v-else-if="error" class="bg-white dark:bg-gray-800 shadow-xl rounded-xl p-6 flex flex-col items-center gap-6 w-full h-full">
       <div class="w-120 h-120 border-4 border-red-500 rounded-xl overflow-hidden flex justify-center items-center">
         <div class="text-red-500 text-center">
@@ -24,7 +22,6 @@
       </div>
     </div>
 
-    <!-- Success State -->
     <div v-else-if="productData" class="bg-white dark:bg-gray-800 shadow-xl rounded-xl p-6 flex flex-col items-center gap-6 w-full h-full">
       <div class="w-120 h-120 border-4 border-blue-500 rounded-xl overflow-hidden flex justify-center items-center relative">
         <img :src="productData.imageUrl" :alt="productData.name" class="w-full h-full object-cover" @error="handleImageError" />
@@ -50,14 +47,14 @@
       </div>
 
       <div class="mt-4">
-        <NuxtLink 
-          :to="`/product/${id}/payment`" 
+        <button
+          @click="handleBuy"
           :disabled="productData.stock === 0"
           class="flex items-center justify-center px-6 py-3 rounded-lg transition"
           :class="productData.stock === 0 ? 'bg-gray-400 cursor-not-allowed text-gray-200' : 'bg-orange-500 hover:bg-orange-600 text-white'"
         >
           <ShoppingCartIcon class="w-6 h-6 mr-2" /> {{ productData.stock === 0 ? 'Stok Habis' : 'Beli' }}
-        </NuxtLink>
+        </button>
       </div>
     </div>
   </div>
@@ -73,6 +70,7 @@ const config = useRuntimeConfig()
 const route = useRoute()
 const router = useRouter()
 const backendURL2 = config.public.BACKEND_URL_2
+const backendURL1 = config.public.BACKEND_URL_1
 const id = computed(() => route.params.id)
 
 const productId = computed(() => route.params.id)
@@ -97,9 +95,9 @@ const { data: productData, pending, error, refresh } = await useAsyncData(
        withCredentials: true
     })
     const data = response.data
-
+    console.log(data.data)
     if (data.success) {
-      return data.data // kembalikan hanya data produk
+      return data.data
     } else {
       throw new Error(data.message || 'Gagal mengambil produk')
     }
@@ -109,15 +107,92 @@ const { data: productData, pending, error, refresh } = await useAsyncData(
   }
 )
 
-const handleFavorite = () => {
-  favoriteCount.value += 1
-  alert(`Produk ${productData.value.name} ditambahkan ke favorit!`)
+
+const handleFavorite = async () => {
+  try {
+    // Make sure you're using the correct backend URL
+    const config = useRuntimeConfig()
+    const backendURL = config.public.BACKEND_URL_2 // or whatever your correct config key is
+    console.log(productId.value)
+    const response = await axios.post(`${backendURL2}/favorites`, { // Remove trailing slash
+      // userId: userId,        // Pass as parameter instead of hardcoding
+      productId: productId.value   // Pass as parameter instead of hardcoding
+    }, {
+      withCredentials: true,
+    })
+
+    if (response.data.success) {
+      console.log('Berhasil difavoritkan:', response.data.message)
+      // Add user feedback
+      alert('Produk berhasil ditambahkan ke favorit!')
+      // Or use a toast notification if you have one
+    } else {
+      console.warn('Gagal favorit:', response.data.message)
+      alert('Gagal menambahkan ke favorit: ' + response.data.message)
+    }
+  } catch (error) {
+    console.error('Terjadi kesalahan saat memfavoritkan:', error)
+    
+    // Handle different error types
+    if (error.response) {
+      // Server responded with error status
+      const status = error.response.status
+      const message = error.response.data?.message || error.message
+      
+      if (status === 404) {
+        alert('Endpoint tidak ditemukan. Periksa URL backend.')
+      } else if (status === 401) {
+        alert('Unauthorized. Silakan login kembali.')
+      } else if (status === 500) {
+        alert('Server error. Silakan coba lagi nanti.')
+      } else {
+        alert(`Gagal memfavoritkan: ${message}`)
+      }
+    } else if (error.request) {
+      // Request was made but no response received
+      alert('Tidak dapat terhubung ke server. Periksa koneksi internet.')
+    } else {
+      // Something else happened
+      alert('Terjadi kesalahan yang tidak diketahui.')
+    }
+  }
 }
+const handleBuy = async () => {
+  const currentProductId = route.params.id || id.value
+  
+  if (!currentProductId) {
+    console.error('Product ID tidak ditemukan')
+    return
+  }
+
+  const redirectPath = `/product/${currentProductId}/payment`
+
+  try {
+    const res = await axios.get(`${backendURL1}/auth/me`, {
+      withCredentials: true,
+    })
+
+    if (res.status === 200 || res.status === 304) {
+      await router.push(redirectPath)
+    }
+    console.log("redirect", redirectPath)
+  } catch (err) {
+    console.error('Error saat cek login:', err)
+    
+    if (typeof window !== 'undefined') {
+      window.location.href = `${backendURL1}/auth/google?redirect=${redirectPath}`
+    }
+  }
+}
+
+
+// Usage example:
+// handleFavorite(7, 1) // productId: 7, userId: 1
+
 
 const handleImageError = (event) => {
   event.target.src = 'https://via.placeholder.com/400x400/CCCCCC/FFFFFF?text=No+Image'
 }
-
 
 useSeoMeta({
   title: () => productData.value?.name || 'Loading Product...',

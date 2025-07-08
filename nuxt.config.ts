@@ -1,6 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-
+  
    runtimeConfig: {
     public: {
       BACKEND_URL_1: process.env.NUXT_BACKEND_URL_1 || 'http://localhost:3010/api',
@@ -18,5 +18,11 @@ export default defineNuxtConfig({
     compatibilityVersion: 4
   },
 
-  compatibilityDate: '2024-11-27'
+  compatibilityDate: '2024-11-27',
+
+   vite: {
+    server: {
+      allowedHosts: ['8cb05a4959e0.ngrok-free.app']  // ← tambahkan domain ngrok kamu di sini
+    }
+  }
 })
