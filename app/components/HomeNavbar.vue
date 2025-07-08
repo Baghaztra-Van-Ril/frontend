@@ -15,6 +15,7 @@
 
         <template v-if="isAuthenticated">
           <UButton color="primary" to="/favorit">Favorit</UButton>
+          <UButton color="primary" to="/history">Riwayat</UButton>
           <UButton
             color="red"
             @click="logout"

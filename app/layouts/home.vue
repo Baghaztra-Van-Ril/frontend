@@ -3,8 +3,10 @@
         <div class="fixed top-0 left-0 w-full z-50">
             <HomeNavbar />
         </div>
-        <UContainer class="pt-16">
+        <UContainer class="pt-16 min-h-screen">
             <slot />
         </UContainer>
+
+        <Footer></Footer>
     </main>
 </template>
