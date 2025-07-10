@@ -1,11 +1,7 @@
-<script setup>
-import bgImage from '/images/image 6.png'
-</script>
-
 <template>
   <div
     class="relative h-screen bg-cover bg-center"
-    :style="{ backgroundImage: `url(${bgImage})` }"
+    style="background-image: url('/images/image 6.png')"
   >
     <!-- Judul di atas -->
     <div class="absolute top-[25%] left-1/2 transform -translate-x-1/2 -translate-y-9/2 text-center">
