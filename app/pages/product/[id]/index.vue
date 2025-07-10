@@ -141,6 +141,18 @@ const finalPrice = computed(() => {
   return Math.round(productData.value.price * discount)
 })
 
+// Function to check if user is logged in
+const checkAuthStatus = async () => {
+  try {
+    const res = await axios.get(`${backendURL1}/auth/me`, {
+      withCredentials: true,
+    })
+    return res.status === 200 || res.status === 304
+  } catch (err) {
+    return false
+  }
+}
+
 const { data: productData, pending, error, refresh } = await useAsyncData(
   'fetch-product',
   async () => {
@@ -163,13 +175,28 @@ const { data: productData, pending, error, refresh } = await useAsyncData(
   }
 )
 
-// Handle favorite toggle
+// Handle favorite toggle with authentication check
 const handleFavoriteToggle = async () => {
   if (favoriteLoading.value) return
   
   favoriteLoading.value = true
   
   try {
+    // Check if user is logged in first
+    const isLoggedIn = await checkAuthStatus()
+    
+    if (!isLoggedIn) {
+      // User is not logged in, redirect to login
+      const currentProductId = route.params.id || id.value
+      const redirectPath = `/product/${currentProductId}`
+      
+      if (typeof window !== 'undefined') {
+        window.location.href = `${backendURL1}/auth/google?redirect=${redirectPath}`
+      }
+      return
+    }
+
+    // User is logged in, proceed with favorite toggle
     const response = await axios.post(`${backendURL2}/favorites`, {
       productId: productId.value
     }, {
@@ -200,7 +227,15 @@ const handleFavoriteToggle = async () => {
       const status = error.response.status
       const message = error.response.data?.message || error.message
       
-      if (status === 404) {
+      if (status === 401) {
+        // Unauthorized - redirect to login
+        const currentProductId = route.params.id || id.value
+        const redirectPath = `/product/${currentProductId}`
+        
+        if (typeof window !== 'undefined') {
+          window.location.href = `${backendURL1}/auth/google?redirect=${redirectPath}`
+        }
+      } else if (status === 404) {
         alert('Endpoint tidak ditemukan. Periksa URL backend.')
       } else if (status === 500) {
         alert('Server error. Silakan coba lagi nanti.')
