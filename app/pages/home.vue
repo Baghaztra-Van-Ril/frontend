@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="mt-5" v-if="promos.length > 0">
+    <div class="mt-5" v-if="promos && promos.length > 0">
       <h1 class="text-2xl font-bold">Promo Untukmu</h1>
     </div>
     
@@ -12,33 +12,41 @@
         </div>
       </div>
       
-      <Swiper
-        v-else-if="promos.length > 0"
-        :modules="[Autoplay, Pagination]"
-        :slides-per-view="1"
-        :loop="true"
-        :autoplay="{ delay: 3000 }"
-        pagination
-        class="w-full"
-      >
-        <SwiperSlide v-for="promo in promos" :key="promo.id">
-          <PromoCard
-            :image="promo.imageUrl || promo.product?.imageUrl"
-            :original-price="promo.product?.price"
-            :discount-price="calculateDiscountPrice(promo.product?.price, promo.discount)"
-            :product-name="promo.product?.name"
-            :discount-percentage="Math.round(parseFloat(promo.discount) * 100)"
-          />
-        </SwiperSlide>
-      </Swiper>
+      <ClientOnly>
+        <Swiper
+          v-if="promos && promos.length > 0"
+          :modules="[Autoplay, Pagination]"
+          :slides-per-view="1"
+          :loop="true"
+          :autoplay="{ delay: 3000 }"
+          pagination
+          class="w-full"
+        >
+          <SwiperSlide v-for="promo in promos" :key="promo.id">
+            <PromoCard
+              :image="promo.imageUrl || promo.product?.imageUrl"
+              :original-price="promo.product?.price"
+              :discount-price="calculateDiscountPrice(promo.product?.price, promo.discount)"
+              :product-name="promo.product?.name"
+              :discount-percentage="Math.round(parseFloat(promo.discount) * 100)"
+              :product-id="promo.product?.id"
+            />
+          </SwiperSlide>
+        </Swiper>
+        <template #fallback>
+          <div class="w-full h-48 flex items-center justify-center bg-gray-50 rounded-lg">
+            <p class="text-gray-500">Loading swiper...</p>
+          </div>
+        </template>
+      </ClientOnly>
     </div>
 
-    <div class="mt-5" v-if="products.length > 0">
+    <div class="mt-5" v-if="products && products.length > 0">
       <h1 class="text-2xl font-bold">Produk Terbaru Kami</h1>
     </div>
 
     <div class="flex items-center space-x-4 w-full">
-      <div class="ml-auto" v-if="products.length > 0">
+      <div class="ml-auto" v-if="products && products.length > 0">
         <UButton color="primary" to="/product">Lihat Semua Produk</UButton>
       </div>
     </div>
@@ -53,7 +61,7 @@
       </div>
     </div>
 
-    <div v-else-if="products.length > 0" class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 py-12">
+    <div v-else-if="products && products.length > 0" class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 py-12">
       <template v-for="product in displayedProducts" :key="product.id">
         <NuxtLink :to="`/product/${ product.id }`" class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
           <!-- Product Image -->
@@ -120,7 +128,8 @@
         </NuxtLink>
       </template>
     </div>
-    <div v-else class="max-w-6xl mx-auto py-12">
+    
+    <div v-else-if="!productsLoading" class="max-w-6xl mx-auto py-12">
       <div class="text-center">
         <p class="text-gray-500">Belum ada produk tersedia</p>
       </div>
@@ -137,15 +146,76 @@ import 'swiper/css/pagination'
 
 const config = useRuntimeConfig()
 
-const promos = ref([])
-const products = ref([])
-const promosLoading = ref(true)
-const productsLoading = ref(true)
+// Fetch promos using useAsyncData
+const { data: promosData, pending: promosLoading, error: promosError, refresh: refreshPromos } = await useAsyncData(
+  'promos',
+  async () => {
+    try {
+      if (!config.public?.BACKEND_URL_2) {
+        throw new Error('Backend URL not configured')
+      }
+      
+      const response = await $fetch(`${config.public.BACKEND_URL_2}/promos/active`, {
+        timeout: 10000,
+        retry: 2
+      })
+      
+      if (response?.success && Array.isArray(response.data)) {
+        return response.data
+      }
+      return []
+    } catch (error) {
+      console.error('Error fetching promos:', error)
+      return []
+    }
+  },
+  {
+    server: false, // Client-side only
+    default: () => [],
+    transform: (data) => data || []
+  }
+)
+
+// Fetch products using useAsyncData
+const { data: productsData, pending: productsLoading, error: productsError, refresh: refreshProducts } = await useAsyncData(
+  'products', 
+  async () => {
+    try {
+      if (!config.public?.BACKEND_URL_2) {
+        throw new Error('Backend URL not configured')
+      }
+      
+      const response = await $fetch(`${config.public.BACKEND_URL_2}/products`, {
+        timeout: 10000,
+        retry: 2
+      })
+      
+      if (response?.success && Array.isArray(response.data)) {
+        return response.data
+      }
+      return []
+    } catch (error) {
+      console.error('Error fetching products:', error)
+      return []
+    }
+  },
+  {
+    server: false, // Client-side only
+    default: () => [],
+    transform: (data) => data || []
+  }
+)
+
+// Reactive computed properties
+const promos = computed(() => promosData.value || [])
+const products = computed(() => productsData.value || [])
 
 const displayedProducts = computed(() => {
+  if (!products.value || !Array.isArray(products.value)) return []
   return products.value.slice(0, 6)
 })
 
+// Utility functions
 const calculateDiscountPrice = (originalPrice, discountPercentage) => {
   if (!originalPrice || !discountPercentage) return originalPrice
   const discount = parseFloat(discountPercentage)
@@ -154,10 +224,12 @@ const calculateDiscountPrice = (originalPrice, discountPercentage) => {
 }
 
 const formatPrice = (price) => {
+  if (!price || typeof price !== 'number') return '0'
   return new Intl.NumberFormat('id-ID').format(price)
 }
 
 const formatCount = (count) => {
+  if (!count || typeof count !== 'number') return '0'
   if (count >= 1000000) {
     return (count / 1000000).toFixed(1) + 'M'
   } else if (count >= 1000) {
@@ -166,50 +238,36 @@ const formatCount = (count) => {
   return count.toString()
 }
 
-const refreshPromos = async () => {
-  await fetchPromos()
-}
-
-const fetchPromos = async () => {
-  try {
-    promosLoading.value = true
-    const response = await $fetch(`${config.public.BACKEND_URL_2}/promos/active`)
-    
-    if (response.success) {
-      promos.value = response.data
-    }
-  } catch (error) {
-    console.error('Error fetching promos:', error)
-    promos.value = []
-  } finally {
-    promosLoading.value = false
+// Error handling
+watch(promosError, (error) => {
+  if (error) {
+    console.error('Promos error:', error)
   }
-}
+})
 
-const fetchProducts = async () => {
-  try {
-    productsLoading.value = true
-    const response = await $fetch(`${config.public.BACKEND_URL_2}/products`)
-    
-    if (response.success) {
-      products.value = response.data
-    }
-  } catch (error) {
-    console.error('Error fetching products:', error)
-  } finally {
-    productsLoading.value = false
+watch(productsError, (error) => {
+  if (error) {
+    console.error('Products error:', error)
   }
-}
+})
 
-onMounted(async () => {
+// Refresh function for external use
+const refreshData = async () => {
   await Promise.all([
-    fetchPromos(),
-    fetchProducts()
+    refreshPromos(),
+    refreshProducts()
   ])
+}
+
+// Expose refresh function
+defineExpose({
+  refreshData,
+  refreshPromos,
+  refreshProducts
 })
 
 definePageMeta({
-  layout: 'home',
+  layout: 'home'
 })
 </script>
 
@@ -217,6 +275,7 @@ definePageMeta({
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

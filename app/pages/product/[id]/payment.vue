@@ -50,6 +50,17 @@
           <p class="text-gray-600 dark:text-gray-300 text-sm mb-1">{{ productData.description }}</p>
           <p class="text-gray-700 dark:text-gray-200 font-semibold mt-4">Harga: Rp.{{ productData.price.toLocaleString('id-ID') }}</p>
           <p class="text-gray-700 dark:text-gray-200">Stok: {{ productData.stock }}</p>
+          
+          <!-- Promo Section -->
+          <div v-if="availablePromos.length > 0" class="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+            <h3 class="text-lg font-semibold text-green-800 dark:text-green-300 mb-2">🎉 Promo Tersedia!</h3>
+            <div class="space-y-2">
+              <div v-for="promo in availablePromos" :key="promo.id" class="text-sm">
+                <span class="font-medium text-green-700 dark:text-green-400">Diskon {{ (promo.discount * 100) }}%</span>
+                <span class="text-green-600 dark:text-green-300"> - Hemat hingga Rp.{{ calculatePromoSavings(promo).toLocaleString('id-ID') }}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Payment Form -->
@@ -68,15 +79,63 @@
               min="1"
               :max="productData.stock"
               :disabled="productData.stock === 0"
-              class="w-24 text-white rounded-md px-2 py-1 font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
+              class="w-24 text-black rounded-md px-2 py-1 font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
             />
+          </div>
+
+          <!-- Promo Selection -->
+          <div v-if="availablePromos.length > 0" class="border-t border-white/30 pt-4">
+            <label class="font-semibold block mb-2">Pilih Promo (Opsional):</label>
+            <div class="space-y-2">
+              <label class="flex items-center cursor-pointer">
+                <input
+                  type="radio"
+                  name="promo"
+                  :value="null"
+                  v-model="selectedPromo"
+                  class="mr-2"
+                />
+                <span class="text-sm">Tidak pakai promo</span>
+              </label>
+              <label 
+                v-for="promo in availablePromos" 
+                :key="promo.id"
+                class="flex items-start cursor-pointer"
+              >
+                <input
+                  type="radio"
+                  name="promo"
+                  :value="promo"
+                  v-model="selectedPromo"
+                  class="mr-2 mt-1"
+                />
+                <div class="flex-1">
+                  <div class="text-sm font-medium">Diskon {{ (promo.discount * 100) }}%</div>
+                  <div class="text-xs opacity-90">Hemat hingga Rp.{{ calculatePromoSavings(promo).toLocaleString('id-ID') }}</div>
+                  <div class="text-xs font-semibold text-yellow-200">
+                    Potongan: {{ (promo.discount * 100) }}%
+                  </div>
+                </div>
+              </label>
+            </div>
           </div>
 
           <hr class="border-white/50 my-2" />
 
-          <div class="flex justify-between text-lg font-bold">
-            <span>Total:</span>
-            <span>Rp.{{ calculateTotal.toLocaleString('id-ID') }},-</span>
+          <!-- Price Breakdown -->
+          <div class="space-y-2">
+            <div class="flex justify-between text-sm">
+              <span>Subtotal:</span>
+              <span>Rp.{{ subtotal.toLocaleString('id-ID') }}</span>
+            </div>
+            <div v-if="selectedPromo && discountAmount > 0" class="flex justify-between text-sm text-yellow-200">
+              <span>Diskon ({{ selectedPromo.discount }}%):</span>
+              <span>-Rp.{{ discountAmount.toLocaleString('id-ID') }}</span>
+            </div>
+            <div class="flex justify-between text-lg font-bold border-t border-white/30 pt-2">
+              <span>Total:</span>
+              <span>Rp.{{ calculateTotal.toLocaleString('id-ID') }},-</span>
+            </div>
           </div>
 
           <button
@@ -150,14 +209,39 @@ const productData = ref({
   description: '',
   imageUrl: '',
   stock: 0,
-  price: 0
+  price: 0,
+  promo: []
 })
 
 const quantity = ref(1)
+const selectedPromo = ref(null)
 
-const calculateTotal = computed(() => {
+// Computed property untuk filter promo yang aktif
+const availablePromos = computed(() => {
+  return productData.value.promo.filter(promo => promo.isActive === true)
+})
+
+const subtotal = computed(() => {
   return productData.value.price * quantity.value
 })
+
+const discountAmount = computed(() => {
+  if (!selectedPromo.value) return 0
+  
+  const promo = selectedPromo.value
+  // Menggunakan properti 'discount' dari struktur JSON yang baru
+  return Math.floor(subtotal.value * promo.discount)
+})
+
+const calculateTotal = computed(() => {
+  return Math.max(0, subtotal.value - discountAmount.value)
+})
+
+// Function untuk menghitung penghematan maksimal dari promo
+const calculatePromoSavings = (promo) => {
+  const maxSubtotal = productData.value.price * productData.value.stock
+  return Math.floor(maxSubtotal * promo.discount)
+}
 
 // Watcher untuk memastikan kuantitas tidak melebihi stok atau kurang dari 1
 watch(() => productData.value.stock, (newStock) => {
@@ -187,6 +271,12 @@ const fetchProduct = async () => {
     
     if (response.data.success) {
       productData.value = response.data.data
+      
+      // Pastikan promo adalah array
+      if (!Array.isArray(productData.value.promo)) {
+        productData.value.promo = []
+      }
+      
       validateQuantity()
     } else {
       throw new Error(response.data.message || 'Gagal mengambil produk')
@@ -202,7 +292,8 @@ const fetchProduct = async () => {
       description: 'Mohon periksa ID produk.',
       imageUrl: 'https://via.placeholder.com/150/CCCCCC/000000?text=Not+Found',
       stock: 0,
-      price: 0
+      price: 0,
+      promo: []
     }
     quantity.value = 0
   } finally {
@@ -227,14 +318,27 @@ const confirmPayment = async () => {
 
   try {
     paymentLoading.value = true
-    
+
+    const config = useRuntimeConfig()
+    const backendURL1 = config.public.BACKEND_URL_1
+
+    // Prepare payment data
+    const paymentData = {
+      productId: productData.value.id,
+      quantity: quantity.value,
+    }
+
+    // Add promo if selected
+    if (selectedPromo.value) {
+      console.log(`Menggunakan promo: ${selectedPromo.value.id} dengan diskon ${selectedPromo.value.discount * 100}%`);
+      
+      paymentData.promoId = selectedPromo.value.id
+    }
+
     // Kirim data ke backend-1 (payment)
     const response = await axios.post(
-      'http://localhost:3010/api/payments/create',
-      {
-        productId: productData.value.id,
-        quantity: quantity.value,
-      },
+      `${backendURL1}/payments/create`,
+      paymentData,
       {
         withCredentials: true // jika pakai auth cookie
       }
@@ -272,5 +376,10 @@ definePageMeta({
 @media (max-width: 640px) {
   .w-120 { width: 20rem; }
   .h-120 { height: 20rem; }
+}
+
+/* Custom radio button styling */
+input[type="radio"] {
+  accent-color: #ffffff;
 }
 </style>
