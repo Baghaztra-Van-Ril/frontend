@@ -7,7 +7,7 @@
           active-class="text-primary"
           class="hover:text-primary text-gray-700 dark:text-gray-200 font-bold text-xl"
         >
-          TOKUS
+          Ignite Step
         </ULink>
       </div>
       <div class="flex items-center space-x-4">

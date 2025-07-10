@@ -1,5 +1,5 @@
 <script setup>
-import bgImage from '/assets/images/image 6.png'
+import bgImage from '/images/image 6.png'
 </script>
 
 <template>
@@ -10,7 +10,7 @@ import bgImage from '/assets/images/image 6.png'
     <!-- Judul di atas -->
     <div class="absolute top-[25%] left-1/2 transform -translate-x-1/2 -translate-y-9/2 text-center">
       <h1 class="text-5xl font-extrabold bg-gradient-to-r from-yellow-400 via-yellow-100 to-black bg-clip-text text-transparent">
-        TOKO SEPATU TOKUS
+        Ignite Step
       </h1>
     </div>
 

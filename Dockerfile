@@ -23,7 +23,7 @@ COPY --from=builder /app/frontend/.output ./
 COPY --from=builder /app/frontend/node_modules ./node_modules
 
 # Expose the application port
-EXPOSE 3000
+EXPOSE 3001
 
 # Command to run the Nuxt.js server
 CMD ["node", "./server/index.mjs"]

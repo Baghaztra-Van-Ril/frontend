@@ -2,7 +2,7 @@
   <div class="h-screen w-48 text-gray-800 dark:text-gray-200 flex flex-col px-4 py-6">
     <!-- Judul -->
     <div class="text-xl font-bold mb-6 text-center">
-      Toko Sepatu
+      Ignite Step
     </div>
 
     <!-- Menu Navigasi -->
