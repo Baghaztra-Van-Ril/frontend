@@ -138,7 +138,7 @@ const finalPrice = computed(() => {
   if (!productData.value) return 0
   if (!activePromo.value) return productData.value.price
   const discount = parseFloat(activePromo.value.discount)
-  return Math.round(productData.value.price * discount)
+  return Math.round(productData.value.price)-(productData.value.price * discount)
 })
 
 // Function to check if user is logged in
