@@ -24,15 +24,54 @@
 
     <div v-else-if="productData" class="bg-white dark:bg-gray-800 shadow-xl rounded-xl p-6 flex flex-col items-center gap-6 w-full h-full">
       <div class="w-120 h-120 border-4 border-blue-500 rounded-xl overflow-hidden flex justify-center items-center relative">
-        <img :src="productData.imageUrl" :alt="productData.name" class="w-full h-full object-cover" @error="handleImageError" />
+        <img 
+          :src="productData.imageUrl" 
+          :alt="productData.name" 
+          class="w-full h-full object-cover cursor-pointer select-none" 
+          @error="handleImageError"
+          @click="handleImageClick"
+          @touchstart="handleTouchStart"
+          @touchend="handleTouchEnd"
+        />
         <div v-if="activePromo" class="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-lg text-sm font-bold">
           {{ Math.round((1 - parseFloat(activePromo.discount)) * 100) }}% OFF
         </div>
+        <!-- Favorite Toggle Button - Top Left -->
+        <button 
+          @click="handleFavoriteToggle" 
+          class="absolute top-2 left-2 p-2 rounded-full bg-white/80 hover:bg-white transition-all duration-200 shadow-md"
+          :disabled="favoriteLoading"
+        >
+          <HeartIcon 
+            v-if="isFavorited" 
+            class="w-6 h-6 text-red-500 fill-current" 
+          />
+          <HeartIcon 
+            v-else 
+            class="w-6 h-6 text-gray-400 hover:text-red-500 transition-colors" 
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          />
+        </button>
+        
+        <!-- Double Tap Animation -->
+        <div 
+          v-if="showHeartAnimation" 
+          class="absolute inset-0 flex items-center justify-center pointer-events-none"
+        >
+          <HeartIcon 
+            class="w-16 h-16 text-red-500 fill-current animate-ping" 
+            style="animation-duration: 0.6s;"
+          />
+        </div>
       </div>
 
-      <button @click="handleFavorite" class="flex items-center justify-center px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition">
-        <HeartIcon class="w-6 h-6 mr-2" /> {{ favoriteCount }}k Favorite
-      </button>
+      <!-- Favorite Count Display -->
+      <div class="flex items-center justify-center px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+        <HeartIcon class="w-5 h-5 mr-2 text-red-500" />
+        <span class="font-medium">{{ favoriteCount }} Favorite</span>
+      </div>
 
       <div class="flex flex-col items-center text-center gap-2">
         <h2 class="text-2xl font-bold text-gray-800 dark:text-white">{{ productData.name }}</h2>
@@ -74,7 +113,21 @@ const backendURL1 = config.public.BACKEND_URL_1
 const id = computed(() => route.params.id)
 
 const productId = computed(() => route.params.id)
-const favoriteCount = ref(72)
+
+// Reactive variables for favorite functionality
+const isFavorited = ref(false)
+const favoriteCount = ref(0)
+const favoriteLoading = ref(false)
+
+// Double tap functionality
+const showHeartAnimation = ref(false)
+const lastTapTime = ref(0)
+const tapTimeout = ref(null)
+const DOUBLE_TAP_DELAY = 300 // milliseconds
+
+// Touch handling for mobile
+const touchStartTime = ref(0)
+const touchEndTime = ref(0)
 
 const activePromo = computed(() => {
   if (!productData.value?.promo) return null
@@ -97,6 +150,9 @@ const { data: productData, pending, error, refresh } = await useAsyncData(
     const data = response.data
     console.log(data.data)
     if (data.success) {
+      // Update favorite state from API response
+      isFavorited.value = data.data.isFavorited
+      favoriteCount.value = data.data._count?.favorites || 0
       return data.data
     } else {
       throw new Error(data.message || 'Gagal mengambil produk')
@@ -107,56 +163,128 @@ const { data: productData, pending, error, refresh } = await useAsyncData(
   }
 )
 
-
-const handleFavorite = async () => {
+// Handle favorite toggle
+const handleFavoriteToggle = async () => {
+  if (favoriteLoading.value) return
+  
+  favoriteLoading.value = true
+  
   try {
-    // Make sure you're using the correct backend URL
-    const config = useRuntimeConfig()
-    const backendURL = config.public.BACKEND_URL_2 // or whatever your correct config key is
-    console.log(productId.value)
-    const response = await axios.post(`${backendURL2}/favorites`, { // Remove trailing slash
-      // userId: userId,        // Pass as parameter instead of hardcoding
-      productId: productId.value   // Pass as parameter instead of hardcoding
+    const response = await axios.post(`${backendURL2}/favorites`, {
+      productId: productId.value
     }, {
       withCredentials: true,
     })
 
     if (response.data.success) {
-      console.log('Berhasil difavoritkan:', response.data.message)
-      // Add user feedback
-      alert('Produk berhasil ditambahkan ke favorit!')
-      // Or use a toast notification if you have one
+      // Toggle favorite state
+      isFavorited.value = !isFavorited.value
+      
+      // Update count based on action
+      if (isFavorited.value) {
+        favoriteCount.value += 1
+      } else {
+        favoriteCount.value = Math.max(0, favoriteCount.value - 1)
+      }
+      
+      console.log('Berhasil toggle favorit:', response.data.message)
     } else {
-      console.warn('Gagal favorit:', response.data.message)
-      alert('Gagal menambahkan ke favorit: ' + response.data.message)
+      console.warn('Gagal toggle favorit:', response.data.message)
+      alert('Gagal mengubah status favorit: ' + response.data.message)
     }
   } catch (error) {
-    console.error('Terjadi kesalahan saat memfavoritkan:', error)
+    console.error('Terjadi kesalahan saat toggle favorit:', error)
     
     // Handle different error types
     if (error.response) {
-      // Server responded with error status
       const status = error.response.status
       const message = error.response.data?.message || error.message
       
       if (status === 404) {
         alert('Endpoint tidak ditemukan. Periksa URL backend.')
-      } else if (status === 401) {
-        alert('Unauthorized. Silakan login kembali.')
       } else if (status === 500) {
         alert('Server error. Silakan coba lagi nanti.')
       } else {
-        alert(`Gagal memfavoritkan: ${message}`)
+        alert(`Gagal mengubah status favorit: ${message}`)
       }
     } else if (error.request) {
-      // Request was made but no response received
       alert('Tidak dapat terhubung ke server. Periksa koneksi internet.')
     } else {
-      // Something else happened
       alert('Terjadi kesalahan yang tidak diketahui.')
     }
+  } finally {
+    favoriteLoading.value = false
   }
 }
+
+// Handle double tap on image (for desktop)
+const handleImageClick = (event) => {
+  event.preventDefault()
+  
+  const currentTime = Date.now()
+  const timeSinceLastTap = currentTime - lastTapTime.value
+  
+  if (timeSinceLastTap < DOUBLE_TAP_DELAY && timeSinceLastTap > 0) {
+    // Double tap detected
+    handleDoubleTap()
+    clearTimeout(tapTimeout.value)
+  } else {
+    // Single tap - wait to see if there's a second tap
+    lastTapTime.value = currentTime
+    tapTimeout.value = setTimeout(() => {
+      // Single tap action (if needed)
+      console.log('Single tap on image')
+    }, DOUBLE_TAP_DELAY)
+  }
+}
+
+// Handle touch events for mobile
+const handleTouchStart = (event) => {
+  touchStartTime.value = Date.now()
+}
+
+const handleTouchEnd = (event) => {
+  event.preventDefault()
+  touchEndTime.value = Date.now()
+  
+  // Prevent if touch was too long (likely a drag/scroll)
+  if (touchEndTime.value - touchStartTime.value > 200) {
+    return
+  }
+  
+  const currentTime = Date.now()
+  const timeSinceLastTap = currentTime - lastTapTime.value
+  
+  if (timeSinceLastTap < DOUBLE_TAP_DELAY && timeSinceLastTap > 0) {
+    // Double tap detected
+    handleDoubleTap()
+    clearTimeout(tapTimeout.value)
+  } else {
+    // Single tap - wait to see if there's a second tap
+    lastTapTime.value = currentTime
+    tapTimeout.value = setTimeout(() => {
+      // Single tap action (if needed)
+      console.log('Single tap on image')
+    }, DOUBLE_TAP_DELAY)
+  }
+}
+
+// Handle double tap action
+const handleDoubleTap = () => {
+  console.log('Double tap detected!')
+  
+  // Show heart animation
+  showHeartAnimation.value = true
+  
+  // Hide animation after 600ms
+  setTimeout(() => {
+    showHeartAnimation.value = false
+  }, 600)
+  
+  // Toggle favorite
+  handleFavoriteToggle()
+}
+
 const handleBuy = async () => {
   const currentProductId = route.params.id || id.value
   
@@ -184,11 +312,6 @@ const handleBuy = async () => {
     }
   }
 }
-
-
-// Usage example:
-// handleFavorite(7, 1) // productId: 7, userId: 1
-
 
 const handleImageError = (event) => {
   event.target.src = 'https://via.placeholder.com/400x400/CCCCCC/FFFFFF?text=No+Image'
