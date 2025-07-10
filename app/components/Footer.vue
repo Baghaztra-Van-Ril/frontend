@@ -18,7 +18,7 @@
       <div>
         <h2 class="text-lg font-bold mb-2">Kontak Email</h2>
         <ul class="text-sm space-y-1 break-words">
-          <li>firmanbaghaztra21@gmail.com</li>
+          <li>baghaztra21@gmail.com</li>
           <li>ardiansyahfirman2004@gmail.com</li>
           <li>adityaalfarison33@gmail.com</li>
           <li>muhammadamirshafwan@gmail.com</li>
