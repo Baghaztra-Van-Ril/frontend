@@ -106,7 +106,7 @@ const handleGoogleLogin = () => {
   justify-content: center;
   align-items: center;
   min-height: 100vh; /* Memastikan form di tengah vertikal di seluruh tinggi viewport */
-  background-image: url('/assets/images/image 6.png');
+  background-image: url('/images/image 6.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
