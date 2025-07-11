@@ -87,7 +87,7 @@
                   </div>
                   <div class="text-right">
                     <p class="text-lg font-bold text-gray-900">
-                      {{ formatPrice(transaction.totalPrice) }}
+                      {{ formatPrice(transaction.finalAmount) }}
                     </p>
                     <p class="text-sm text-gray-500">
                       Jumlah: {{ transaction.quantity }}
