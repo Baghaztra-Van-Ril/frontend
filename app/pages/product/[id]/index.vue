@@ -82,7 +82,7 @@
         <p class="text-gray-600 dark:text-gray-300">Stok: {{ productData.stock }}</p>
         <p class="text-gray-600 dark:text-gray-300">Ukuran: {{ productData.size }}</p>
         <p class="text-gray-600 dark:text-gray-300">Dilihat: {{ productData.visitCount }} kali</p>
-        <p class="text-gray-700 dark:text-gray-400 mt-2">{{ productData.description }}</p>
+        <p class="text-left text-gray-700 dark:text-gray-400 mt-2" style="white-space: pre-line;">{{ productData.description }}</p>
       </div>
 
       <div class="mt-4">
